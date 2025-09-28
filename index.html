@@ -14,10 +14,27 @@
     .collage { margin-top: 20px; }
     .collage img { border: 2px solid #333; border-radius: 10px; max-width: 100%; display:block; margin-bottom:10px; }
 
-    #map { height: 300px; width: 100%; margin-top: 20px; border-radius: 8px; }
+    #map { height: 300px; width: 100%; margin-top: 20px; border-radius: 8px; cursor:pointer; }
 
     button { padding: 8px 12px; border: none; border-radius: 6px; background: #4CAF50; color: #fff; cursor: pointer; margin-top: 10px; }
     button:hover { background: #45a049; }
+
+    /* Modal para mapa grande */
+    #mapModal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      align-items: center;
+      justify-content: center;
+    }
+    #mapLarge {
+      width: 90%;
+      height: 80%;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
@@ -44,6 +61,11 @@
 <div id="map"></div>
 <button onclick="saveLocation()">Guardar ubicación</button>
 
+<!-- Modal con mapa grande -->
+<div id="mapModal" onclick="closeMapModal()">
+  <div id="mapLarge"></div>
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
   // 🔹 IDs de archivos en tu carpeta de Drive (pon los tuyos aquí)
@@ -58,7 +80,7 @@
 
   let selectedImages = [];
 
-  // Mostrar imágenes con miniaturas
+  // Mostrar imágenes con miniaturas reales de Drive
   fileIds.forEach(id => {
     const thumbUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w300-h300`;
     const fullUrl = `https://drive.google.com/uc?export=view&id=${id}`;
@@ -128,28 +150,48 @@
     });
   }
 
-  // Mapa interactivo con Leaflet
+  // Mapa interactivo con Leaflet (mini mapa)
   const map = L.map('map').setView([0, 0], 2);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
   let marker;
+  let savedCoords = null;
 
   function saveLocation() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(pos => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        savedCoords = [lat, lng];
 
         if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng]).addTo(map);
+        marker = L.marker(savedCoords).addTo(map);
 
-        map.setView([lat, lng], 16);
+        map.setView(savedCoords, 16);
       });
     } else {
       alert("La geolocalización no está soportada en este navegador.");
     }
+  }
+
+  // Abrir mapa grande en modal
+  document.getElementById("map").onclick = () => {
+    if (!savedCoords) return;
+    document.getElementById("mapModal").style.display = "flex";
+    setTimeout(() => {
+      const mapLarge = L.map('mapLarge').setView(savedCoords, 18);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapLarge);
+      L.marker(savedCoords).addTo(mapLarge);
+    }, 100);
+  };
+
+  function closeMapModal() {
+    document.getElementById("mapModal").style.display = "none";
+    document.getElementById("mapLarge").innerHTML = ""; // limpiar para evitar duplicados
   }
 </script>
 
