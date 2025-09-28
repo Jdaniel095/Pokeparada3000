@@ -39,13 +39,13 @@
 <body>
   <h1>Collage + Wayfarer Helper</h1>
   <div class="top-help">
-    Flujo: 1) configura carpeta pública en Drive + API Key → 2) conectar → 3) seleccionar fotos → 4) generar collage → 5) guardar ubicaciones → 6) pegar propuestas que yo te entregue → 7) copiar campos.
+    Flujo: 1) configurar carpeta pública en Drive + API Key → 2) conectar → 3) seleccionar fotos → 4) generar collage → 5) guardar ubicaciones → 6) pegar propuestas → 7) copiar campos.
   </div>
 
   <!-- Config -->
   <section>
     <h2>Configuración (reemplazar en el archivo)</h2>
-    <p><b>IMPORTANTE:</b> en el código reemplaza <code>AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4</code> y <code>1SykigPCl4e003n6i2_PbopBrq22droo4</code> por tus valores.</p>
+    <p><b>IMPORTANTE:</b> Reemplaza <code>API_KEY</code> y <code>FOLDER_ID</code> con tus valores.</p>
   </section>
 
   <hr/>
@@ -85,9 +85,9 @@
 
   <hr/>
 
-  <!-- 3. Guardar ubicaciones (móvil) -->
+  <!-- 3. Guardar ubicaciones -->
   <section>
-    <h2>3) Guardar ubicaciones (desde tu móvil)</h2>
+    <h2>3) Guardar ubicaciones</h2>
     <div class="controls-row">
       <button id="btnSaveLocation" class="primary">Guardar ubicación</button>
       <button id="btnExportLocations">Exportar ubicaciones (JSON)</button>
@@ -97,32 +97,48 @@
     <div id="locationsList"></div>
   </section>
 
+  <hr/>
+
+  <!-- 4. Pegar propuestas -->
+  <section>
+    <h2>4) Pegar propuestas</h2>
+    <textarea id="proposalsInput" placeholder="Pega aquí las propuestas..."></textarea>
+    <div class="controls-row">
+      <button id="btnParse" class="primary">Parsear y asociar</button>
+      <button id="btnClearProposals">Limpiar</button>
+    </div>
+    <div id="proposalsList"></div>
+  </section>
+
+  <hr/>
+
+  <!-- 5. Resultado final -->
+  <section>
+    <h2>5) Resultado final</h2>
+    <div id="finalList"></div>
+  </section>
+
 <script>
 /* ========== REEMPLAZA ESTOS VALORES ========== */
 const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";       
 const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";   
 /* ============================================= */
 
-function driveDirectUrl(id){
-  return `https://drive.google.com/uc?id=${id}`;
-}
+function driveDirectUrl(id){ return `https://drive.google.com/uc?id=${id}`; }
 
-/* -----------------------
-   Estado
------------------------ */
+/* Estado */
 let files = []; 
 let locations = []; 
+let proposals = {}; 
 
-/* -----------------------
-   Listar archivos de Drive
------------------------ */
+/* Listar archivos de Drive */
 async function listarDrive(){
   const q = encodeURIComponent(`'${FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${API_KEY}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,thumbnailLink)&pageSize=300`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=300`;
   try{
     const res = await fetch(url);
     const json = await res.json();
-    if(json.error){ alert("Error Drive API: " + (json.error.message||JSON.stringify(json.error))); return; }
+    if(json.error){ alert("Error Drive API: " + json.error.message); return; }
     files = (json.files||[]).map(f=>({
       id: f.id,
       name: f.name,
@@ -131,22 +147,17 @@ async function listarDrive(){
       selected:false
     }));
     renderFiles();
-  }catch(err){
-    alert("Error al listar Drive: "+err.message);
-  }
+  }catch(err){ alert("Error al listar Drive: "+err.message); }
 }
+document.getElementById('btnConnect').addEventListener('click', listarDrive);
+document.getElementById('btnRefresh').addEventListener('click', listarDrive);
 
-document.getElementById('btnConnect').addEventListener('click', ()=>listarDrive());
-document.getElementById('btnRefresh').addEventListener('click', ()=>listarDrive());
-
-/* -----------------------
-   Render archivos
------------------------ */
+/* Render archivos */
 function renderFiles(){
   const wrap = document.getElementById('filesList');
   wrap.innerHTML = '';
   if(files.length===0){ wrap.innerHTML = '<small>No se encontraron imágenes.</small>'; return; }
-  files.forEach((f,idx)=>{
+  files.forEach((f)=>{
     const div = document.createElement('div'); div.className='file-row';
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!f.selected;
     cb.addEventListener('change', e=>{ f.selected = e.target.checked; updateSelectedCount(); });
@@ -162,79 +173,87 @@ function updateSelectedCount(){
   document.getElementById('selectedCount').innerText = c;
 }
 
-/* -----------------------
-   Collage
------------------------ */
-document.getElementById("btnGenerate").addEventListener("click", async ()=>{
+/* Generar collage */
+document.getElementById('btnGenerate').addEventListener('click', async ()=>{
   const selected = files.filter(f=>f.selected);
-  if(selected.length===0){ alert("Selecciona al menos una foto"); return; }
-
-  const cols = parseInt(document.getElementById("colsInput").value)||3;
-  const w = parseInt(document.getElementById("wInput").value)||300;
-  const h = Math.round(w*0.75); // mantener proporción
+  if(selected.length===0){ alert("Selecciona al menos una foto."); return; }
+  const cols = parseInt(document.getElementById('colsInput').value)||3;
+  const w = parseInt(document.getElementById('wInput').value)||300;
   const rows = Math.ceil(selected.length/cols);
-
-  const canvas = document.getElementById("collageCanvas");
-  canvas.width = cols*w;
-  canvas.height = rows*h;
-  const ctx = canvas.getContext("2d");
+  const h = w*0.75; // proporción 4:3
+  const canvas = document.getElementById('collageCanvas');
+  canvas.width = cols*w; canvas.height = rows*h;
+  const ctx = canvas.getContext('2d');
   ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
 
   let i=0;
   for(const f of selected){
     const img = await loadImage(f.url);
-    const x = (i%cols)*w;
-    const y = Math.floor(i/cols)*h;
+    const x=(i%cols)*w, y=Math.floor(i/cols)*h;
     ctx.drawImage(img,x,y,w,h);
     ctx.fillStyle="rgba(0,0,0,0.6)";
     ctx.fillRect(x,y,28,20);
     ctx.fillStyle="#fff"; ctx.font="14px sans-serif";
-    ctx.fillText(i+1,x+6,y+15);
+    ctx.fillText(i+1,x+4,y+15);
     i++;
   }
-
-  document.getElementById("collagePreview").src = canvas.toDataURL("image/png");
+  document.getElementById('collagePreview').src = canvas.toDataURL();
 });
-function loadImage(url){
-  return new Promise((resolve,reject)=>{
-    const img = new Image();
-    img.crossOrigin="anonymous";
-    img.onload=()=>resolve(img);
-    img.onerror=reject;
-    img.src=url;
+document.getElementById('btnDownload').addEventListener('click', ()=>{
+  const a=document.createElement('a');
+  a.href=document.getElementById('collageCanvas').toDataURL("image/png");
+  a.download="collage.png"; a.click();
+});
+document.getElementById('btnClearSelection').addEventListener('click', ()=>{
+  files.forEach(f=>f.selected=false); renderFiles();
+});
+function loadImage(url){ return new Promise((res,rej)=>{ const img=new Image(); img.crossOrigin="anonymous"; img.onload=()=>res(img); img.onerror=rej; img.src=url; }); }
+
+/* Ubicaciones */
+document.getElementById('btnSaveLocation').addEventListener('click', ()=>{
+  if(!navigator.geolocation){ alert("Geolocalización no soportada."); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    locations.push({lat:pos.coords.latitude, lon:pos.coords.longitude});
+    renderLocations();
+  },err=>alert("Error geolocalización: "+err.message));
+});
+function renderLocations(){
+  const wrap=document.getElementById('locationsList'); wrap.innerHTML="";
+  locations.forEach((l,i)=>{
+    const div=document.createElement('div'); div.textContent=`#${i+1}: ${l.lat.toFixed(5)}, ${l.lon.toFixed(5)}`;
+    wrap.appendChild(div);
   });
 }
-document.getElementById("btnDownload").addEventListener("click",()=>{
-  const link = document.createElement("a");
-  link.download="collage.png";
-  link.href=document.getElementById("collageCanvas").toDataURL("image/png");
-  link.click();
+document.getElementById('btnExportLocations').addEventListener('click', ()=>{
+  const a=document.createElement('a');
+  a.href="data:application/json,"+encodeURIComponent(JSON.stringify(locations));
+  a.download="ubicaciones.json"; a.click();
 });
-document.getElementById("btnClearSelection").addEventListener("click",()=>{
-  files.forEach(f=>f.selected=false);
-  renderFiles();
-});
-
-/* -----------------------
-   Ubicaciones
------------------------ */
-document.getElementById("btnSaveLocation").addEventListener("click",()=>{
-  if(!navigator.geolocation){ alert("Geolocalización no soportada"); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const loc = {lat:pos.coords.latitude, lon:pos.coords.longitude, ts:Date.now()};
-    locations.push(loc);
-    renderLocations();
-  }, err=>alert("Error geolocalización: "+err.message));
+document.getElementById('btnImportLocations').addEventListener('click', ()=>document.getElementById('locFile').click());
+document.getElementById('locFile').addEventListener('change', e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader(); r.onload=()=>{ locations=JSON.parse(r.result); renderLocations(); };
+  r.readAsText(file);
 });
 
-function renderLocations(){
-  const list = document.getElementById("locationsList");
-  list.innerHTML="";
-  locations.forEach((loc,idx)=>{
-    const div = document.createElement("div");
-    div.className="line-item";
-    div.innerHTML=`<div class="meta-box">#${idx+1} → ${loc.lat.toFixed(6)}, ${loc.lon.toFixed(6)}</div>`;
-    list.appendChild(div);
+/* Parsear propuestas */
+document.getElementById('btnParse').addEventListener('click', ()=>{
+  const txt=document.getElementById('proposalsInput').value.trim();
+  if(!txt){ alert("Pega propuestas primero."); return; }
+  const lines=txt.split(/\n+/);
+  proposals={};
+  lines.forEach((line,i)=>{ proposals[i+1]=line; });
+  renderProposals();
+});
+document.getElementById('btnClearProposals').addEventListener('click', ()=>{
+  proposals={}; document.getElementById('proposalsList').innerHTML="";
+});
+function renderProposals(){
+  const wrap=document.getElementById('proposalsList'); wrap.innerHTML="";
+  Object.entries(proposals).forEach(([idx,text])=>{
+    const div=document.createElement('div'); div.className="proposal";
+    div.textContent=`#${idx}: ${text}`;
+    wrap.appendChild(div);
   });
 }
 </script>
