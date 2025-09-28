@@ -15,15 +15,16 @@
   .row{display:flex;gap:12px;flex-wrap:wrap}
   .col{flex:1 1 320px;min-width:260px}
   textarea{width:100%;min-height:120px}
-  .thumb{width:120px;height:90px;object-fit:cover;border:1px solid #ddd}
+  .thumb{width:120px;height:90px;object-fit:contain;border:1px solid #ddd}
   .file-row{display:flex;gap:8px;align-items:center;padding:6px;border-bottom:1px solid #eee}
   .controls{margin:8px 0}
   button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f6f6f6;cursor:pointer}
   button.primary{background:#0b84ff;color:white;border:0}
   .grid-collage{border:1px dashed #bbb;padding:8px;display:inline-block;background:white}
   #collageCanvas{background:#fff;max-width:100%}
+  #collagePreview{margin-top:8px;max-width:100%;border:1px solid #ccc;display:block}
   .proposal{border:1px solid #eee;padding:8px;margin:6px 0;border-radius:6px;background:#fafafa}
-  .smallmap{width:160px;height:120px;border:1px solid #ddd}
+  .smallmap{width:160px;height:120px;border:1px solid #ddd;cursor:pointer}
   .copy-btn{margin-left:8px;font-size:13px}
   .hidden{display:none}
   .top-help{font-size:14px;color:#555;margin-bottom:6px}
@@ -78,6 +79,7 @@
     <div style="margin-top:12px">
       <div class="grid-collage">
         <canvas id="collageCanvas"></canvas>
+        <img id="collagePreview" />
       </div>
     </div>
   </section>
@@ -101,7 +103,7 @@
 
   <!-- 4. Pegar propuestas -->
   <section>
-    <h2>4) Pegar propuestas (formato que yo te doy)</h2>
+    <h2>4) Pegar propuestas (formato que yo doy)</h2>
     <p style="color:#666">Formato exacto de ejemplo:</p>
     <pre>Foto 1
 Título: Título sugerido
@@ -129,8 +131,8 @@ Foto 2
 
 <script>
 /* ========== REEMPLAZA ESTOS VALORES ========== */
-const API_KEY = "YOUR_API_KEY_HERE";       // <-- reemplaza por tu API Key
-const FOLDER_ID = "YOUR_FOLDER_ID_HERE";   // <-- reemplaza por tu Folder ID
+const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";       
+const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";   
 /* ============================================= */
 
 if(API_KEY.includes("YOUR_") || FOLDER_ID.includes("YOUR_")){
@@ -152,7 +154,7 @@ let locations = []; // {num,lat,lon,time}
 let proposals = {}; // num -> {num,title,revisores,entrenadores,categoria}
 
 /* -----------------------
-   Listar archivos de Drive (public folder) usando Drive API v3 + API key
+   Listar archivos de Drive
 ----------------------- */
 async function listarDrive(){
   const q = encodeURIComponent(`'${FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
@@ -197,25 +199,23 @@ function updateSelectedCount(){
 }
 
 /* -----------------------
-   Generar collage usando canvas
+   Generar collage usando canvas y miniatura
 ----------------------- */
+const collageCanvas = document.getElementById('collageCanvas');
+const collagePreview = document.getElementById('collagePreview');
+
 document.getElementById('btnGenerate').addEventListener('click', async ()=>{
   const selected = files.filter(f=>f.selected);
   if(selected.length===0){ alert("Selecciona al menos una foto."); return; }
   const cols = Math.max(1, parseInt(document.getElementById('colsInput').value) || 3);
   const w = Math.max(80, parseInt(document.getElementById('wInput').value) || 300);
   const h = Math.round(w * 0.75);
-  // crear imágenes
-  const imgs = await Promise.all(selected.map(s=>loadImage(s.url).then(img=>({img, name:s.name})).catch(e=>{
-    console.warn("Error cargando imagen", s.url, e); return null;
-  })));
+  const imgs = await Promise.all(selected.map(s=>loadImage(s.url).then(img=>({img, name:s.name})).catch(e=>{console.warn("Error cargando imagen", s.url, e); return null;})));
   const valid = imgs.filter(Boolean);
   const rows = Math.ceil(valid.length/cols);
-  const canvas = document.getElementById('collageCanvas');
-  canvas.width = cols * w + (cols+1)*8;
-  canvas.height = rows * h + (rows+1)*8;
-  const ctx = canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  // dibujar cada imagen y número
+  collageCanvas.width = cols * w + (cols+1)*8;
+  collageCanvas.height = rows * h + (rows+1)*8;
+  const ctx = collageCanvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,collageCanvas.width,collageCanvas.height);
   valid.forEach((o,i)=>{
     const r = Math.floor(i/cols), c = i%cols;
     const x = 8 + c*(w+8), y = 8 + r*(h+8);
@@ -225,12 +225,12 @@ document.getElementById('btnGenerate').addEventListener('click', async ()=>{
     const sx = Math.max(0, Math.round((img.width - sw)/2));
     const sy = Math.max(0, Math.round((img.height - sh)/2));
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-    // número
     const num = i+1;
     ctx.fillStyle='rgba(0,0,0,0.6)';
     ctx.fillRect(x+6, y+6, 34, 28);
     ctx.fillStyle='white'; ctx.font='18px sans-serif'; ctx.fillText(num.toString(), x+16, y+26);
   });
+  collagePreview.src = collageCanvas.toDataURL('image/png');
   alert("Collage generado. Pulsa Descargar para guardar la imagen.");
 });
 
@@ -245,10 +245,9 @@ function loadImage(url){
 }
 
 document.getElementById('btnDownload').addEventListener('click', ()=>{
-  const canvas = document.getElementById('collageCanvas');
-  if(!canvas.width){ alert("Genera primero el collage."); return;}
+  if(!collageCanvas.width){ alert("Genera primero el collage."); return;}
   const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
+  a.href = collageCanvas.toDataURL('image/png');
   a.download = 'collage.png';
   a.click();
 });
@@ -256,8 +255,27 @@ document.getElementById('btnDownload').addEventListener('click', ()=>{
 document.getElementById('btnClearSelection').addEventListener('click', ()=>{ files.forEach(f=>f.selected=false); renderFiles(); });
 
 /* -----------------------
-   Ubicaciones: navigator.geolocation y Leaflet mini maps
+   Ubicaciones: geolocalización + mapas clicables
 ----------------------- */
+function makeMapClickable(mapDiv, lat, lon){
+  mapDiv.style.cursor = 'pointer';
+  mapDiv.onclick = () => {
+    const overlay = document.createElement('div');
+    overlay.style.position='fixed'; overlay.style.top=0; overlay.style.left=0;
+    overlay.style.width='100%'; overlay.style.height='100%';
+    overlay.style.background='rgba(0,0,0,0.7)'; overlay.style.zIndex=9999;
+    overlay.style.display='flex'; overlay.style.justifyContent='center'; overlay.style.alignItems='center';
+    const mapContainer = document.createElement('div');
+    mapContainer.style.width='80%'; mapContainer.style.height='80%'; mapContainer.style.border='2px solid #fff';
+    overlay.appendChild(mapContainer);
+    document.body.appendChild(overlay);
+    const bigMap = L.map(mapContainer, {zoomControl:true, attributionControl:false}).setView([lat, lon], 17);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(bigMap);
+    L.marker([lat, lon]).addTo(bigMap);
+    overlay.onclick = () => { bigMap.remove(); overlay.remove(); };
+  };
+}
+
 document.getElementById('btnSaveLocation').addEventListener('click', ()=>{
   if(!navigator.geolocation){ alert("Tu navegador no soporta geolocalización."); return; }
   const num = prompt("Asigna un número para esta ubicación (ej. 1):");
@@ -267,9 +285,19 @@ document.getElementById('btnSaveLocation').addEventListener('click', ()=>{
     const t = new Date().toISOString();
     locations.push({num: parseInt(num), lat, lon, time: t});
     renderLocations();
-  },err=>{
-    alert("Error al obtener ubicación: "+err.message);
-  },{enableHighAccuracy:true, timeout:10000});
+  },err=>{ alert("Error al obtener ubicación: "+err.message); },{enableHighAccuracy:true, timeout:10000});
+});
+
+document.getElementById('btnExportLocations').addEventListener('click', ()=>{
+  const data = JSON.stringify(locations,null,2);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data],{type:'application/json'})); a.download = 'ubicaciones.json'; a.click();
+});
+
+document.getElementById('btnImportLocations').addEventListener('click', ()=> document.getElementById('locFile').click());
+document.getElementById('locFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = ()=>{ try{ locations = JSON.parse(r.result); renderLocations(); }catch(err){ alert("JSON inválido") } };
+  r.readAsText(f);
 });
 
 function renderLocations(){
@@ -282,6 +310,7 @@ function renderLocations(){
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(map);
       L.marker([loc.lat, loc.lon]).addTo(map);
       map.dragging.disable(); map.touchZoom.disable(); map.doubleClickZoom.disable(); map.scrollWheelZoom.disable();
+      makeMapClickable(mapDiv, loc.lat, loc.lon);
     },50);
     const meta = document.createElement('div'); meta.className='meta-box';
     meta.innerHTML = `<b>Número:</b> ${loc.num}<br/><b>Lat:</b> ${loc.lat.toFixed(6)} <b>Lon:</b> ${loc.lon.toFixed(6)}<br/><small>${loc.time}</small>`;
@@ -290,17 +319,6 @@ function renderLocations(){
     wrap.appendChild(div);
   });
 }
-
-document.getElementById('btnExportLocations').addEventListener('click', ()=>{
-  const data = JSON.stringify(locations,null,2);
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data],{type:'application/json'})); a.download = 'ubicaciones.json'; a.click();
-});
-document.getElementById('btnImportLocations').addEventListener('click', ()=> document.getElementById('locFile').click());
-document.getElementById('locFile').addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader(); r.onload = ()=>{ try{ const js = JSON.parse(r.result); locations = js; renderLocations(); }catch(err){ alert("JSON inválido") } };
-  r.readAsText(f);
-});
 
 /* -----------------------
    Parsear propuestas pegadas y asociar
@@ -367,6 +385,7 @@ function renderFinal(){
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(map);
         L.marker([loc.lat, loc.lon]).addTo(map);
         map.dragging.disable(); map.touchZoom.disable(); map.doubleClickZoom.disable(); map.scrollWheelZoom.disable();
+        makeMapClickable(mapDiv, loc.lat, loc.lon);
       },50);
     } else {
       mapDiv.innerHTML = '<small style="color:#666">Sin ubicación guardada para este número</small>';
@@ -395,7 +414,6 @@ function renderFinal(){
     wrap.appendChild(item);
   });
 
-  // eventos copiar
   document.querySelectorAll('.copy-btn').forEach(btn=>{
     btn.addEventListener('click', (ev)=>{
       const id = btn.getAttribute('data-copy');
@@ -403,7 +421,6 @@ function renderFinal(){
       copyToClipboard(txt).then(()=>{ btn.textContent='Copiado'; setTimeout(()=>btn.textContent='Copiar',900); });
     });
   });
-  // ocultar
   document.querySelectorAll('.btn-hide').forEach(b=>{
     b.addEventListener('click', (ev)=>{
       const n = b.getAttribute('data-num');
@@ -426,7 +443,6 @@ function copyToClipboard(text){
   });
 }
 
-/* init: nada especial */
 </script>
 
 </body>
