@@ -14,13 +14,11 @@
   h1{margin:4px 0 12px;text-align:center;color:#0b84ff}
   h2{color:#444;margin-top:22px}
   section{margin-bottom:24px}
-  .row{display:flex;gap:12px;flex-wrap:wrap}
-  .col{flex:1 1 320px;min-width:260px}
   textarea{width:100%;min-height:120px;padding:8px;border-radius:6px;border:1px solid #ccc}
   .thumb{width:120px;height:90px;object-fit:cover;border:1px solid #ddd;border-radius:4px}
   .file-row{display:flex;gap:8px;align-items:center;padding:6px;border-bottom:1px solid #eee;background:#fff;border-radius:6px;margin-bottom:6px}
   .controls{margin:8px 0}
-  button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f6f6f6;cursor:pointer;transition:0.2s}
+  button{padding:6px 10px;border-radius:6px;border:1px solid #ccc;background:#f6f6f6;cursor:pointer;transition:0.15s}
   button:hover{background:#e9e9e9}
   button.primary{background:#0b84ff;color:white;border:0}
   .grid-collage{border:1px dashed #bbb;padding:8px;display:inline-block;background:white;border-radius:6px}
@@ -29,18 +27,17 @@
   .proposal{border:1px solid #eee;padding:8px;margin:6px 0;border-radius:6px;background:#fff}
   .smallmap{width:160px;height:120px;border:1px solid #ddd;cursor:pointer;border-radius:4px;overflow:hidden}
   .copy-btn{margin-left:8px;font-size:13px}
-  .hidden{display:none}
   .top-help{font-size:14px;color:#555;margin-bottom:6px;text-align:center}
-  .photo-preview{display:flex;gap:8px;align-items:center}
   .line-item{display:flex;gap:12px;align-items:flex-start;margin:6px 0;padding:6px;border:1px solid #eee;border-radius:6px;background:#fff}
   .meta-box{flex:1}
   .controls-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
   .badge{display:inline-block;padding:3px 6px;border-radius:12px;background:#eee;font-size:12px}
   .files-wrap{max-height:300px;overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fff}
-  .final-card{display:flex;gap:12px;align-items:flex-start;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+  .final-card{display:flex;gap:12px;align-items:flex-start;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
   .final-thumb{width:160px;height:120px;object-fit:cover;border:1px solid #ddd;border-radius:6px}
   .small-btn{padding:4px 8px;font-size:13px;border-radius:6px}
   .map-overlay-close{position:absolute;right:12px;top:12px;z-index:10001;background:#fff;border-radius:6px;padding:6px;border:1px solid #ccc;cursor:pointer}
+  .hidden-card{opacity:0.6;display:flex;align-items:center;justify-content:space-between;padding:8px;border:1px solid #eee;border-radius:8px;background:#fafafa;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -83,6 +80,7 @@
   <!-- 3. Guardar ubicaciones -->
   <section>
     <h2>3) Guardar ubicaciones (desde tu móvil)</h2>
+    <p>Asigna el número asociado a la foto del collage al guardar la ubicación (ej. 1).</p>
     <div class="controls-row">
       <button id="btnSaveLocation" class="primary">Guardar ubicación</button>
       <button id="btnExportLocations">Exportar ubicaciones</button>
@@ -94,7 +92,16 @@
 
   <!-- 4. Pegar propuestas -->
   <section>
-    <h2>4) Pegar propuestas</h2>
+    <h2>4) Pegar propuestas (formato exacto)</h2>
+    <p style="color:#666">Formato de ejemplo (usa exactamente las etiquetas):</p>
+    <pre>Foto 1
+Título: Título sugerido
+Revisores: Texto para el revisor...
+Entrenadores: Texto para entrenadores...
+Categoría: Point of Interest
+
+Foto 2
+...</pre>
     <textarea id="proposalsInput" placeholder="Pega aquí las propuestas..."></textarea>
     <div class="controls-row">
       <button id="btnParse" class="primary">Parsear y asociar</button>
@@ -113,40 +120,432 @@
 /* ========== CONFIG ========== */
 const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
 const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
+/* ============================================= */
 
-/* Estado */
-let files = [];
-let locations = [];
-let proposals = {};
+function driveDirectUrl(id){ return `https://drive.google.com/uc?export=view&id=${id}`; }
+function driveThumbUrl(id,size=200){ return `https://drive.google.com/thumbnail?id=${id}&sz=w${size}`; }
 
-/* ---------- Persistencia ---------- */
+/* -----------------------
+   Estado y persistencia
+----------------------- */
+let files = [];          // {id,name,url,thumb,selected}
+let locations = [];      // {num,lat,lon,time}
+let proposals = {};      // num -> {num,title,revisores,entrenadores,categoria}
+let hiddenSet = new Set(); // numeros ocultos
+
+const KEY_FILES = "wf_files_v1";
+const KEY_LOC = "wf_locations_v1";
+const KEY_PROPS = "wf_proposals_v1";
+const KEY_HIDDEN = "wf_hidden_v1";
+
 function saveState(){
-  localStorage.setItem("wf_files", JSON.stringify(files));
-  localStorage.setItem("wf_locations", JSON.stringify(locations));
-  localStorage.setItem("wf_proposals", JSON.stringify(proposals));
+  try{
+    localStorage.setItem(KEY_FILES, JSON.stringify(files));
+    localStorage.setItem(KEY_LOC, JSON.stringify(locations));
+    localStorage.setItem(KEY_PROPS, JSON.stringify(proposals));
+    localStorage.setItem(KEY_HIDDEN, JSON.stringify(Array.from(hiddenSet)));
+  }catch(e){ console.warn("No se pudo guardar estado",e); }
 }
 function loadState(){
   try{
-    files = JSON.parse(localStorage.getItem("wf_files")||"[]");
-    locations = JSON.parse(localStorage.getItem("wf_locations")||"[]");
-    proposals = JSON.parse(localStorage.getItem("wf_proposals")||"{}");
-  }catch(e){}
+    const a = JSON.parse(localStorage.getItem(KEY_FILES)||"null");
+    if(Array.isArray(a) && a.length>0) files = a;
+    const b = JSON.parse(localStorage.getItem(KEY_LOC)||"[]"); if(Array.isArray(b)) locations = b;
+    const c = JSON.parse(localStorage.getItem(KEY_PROPS)||"{}"); if(c) proposals = c;
+    const d = JSON.parse(localStorage.getItem(KEY_HIDDEN)||"[]"); if(Array.isArray(d)) hiddenSet = new Set(d);
+  }catch(e){ console.warn("Error cargando estado",e); }
 }
 
-/* ---------- Funciones clave (abreviadas aquí por espacio) ---------- */
-/* → tu mismo código de listarDrive, renderFiles, collage, ubicaciones, propuestas y renderFinal,
-   solo que después de cada acción importante se llama saveState().
-   Ejemplo: después de cambiar selección, de agregar ubicación o de parsear propuestas. */
+/* -----------------------
+   Drive: listar archivos (solo tipos comunes)
+----------------------- */
+async function listarDrive(){
+  const q = encodeURIComponent(`'${FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${API_KEY}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,thumbnailLink)&pageSize=500`;
+  try{
+    const res = await fetch(url);
+    const json = await res.json();
+    if(json.error){ alert("Error Drive API: " + (json.error.message||JSON.stringify(json.error))); return; }
+    // filtrar a formatos comunes (evitar heif/heic si no quieres)
+    const keep = (f)=>/jpeg|jpg|png|gif/i.test(f.mimeType);
+    files = (json.files||[]).filter(keep).map(f=>({
+      id: f.id,
+      name: f.name,
+      url: driveDirectUrl(f.id),
+      thumb: f.thumbnailLink || driveThumbUrl(f.id,200),
+      selected: false
+    }));
+    // si había selección almacenada, intentar restaurarla
+    try{
+      const stored = JSON.parse(localStorage.getItem(KEY_FILES)||"null");
+      if(Array.isArray(stored)){
+        const selectedIds = new Set(stored.filter(s=>s.selected).map(s=>s.id));
+        files.forEach(ff=>{ if(selectedIds.has(ff.id)) ff.selected = true; });
+      }
+    }catch(e){}
+    renderFiles();
+    saveState();
+  }catch(err){
+    alert("Error al listar Drive: "+err.message);
+  }
+}
 
-/* Al inicio: */
-window.addEventListener('load', ()=>{
-  loadState();
-  renderFiles();
-  renderLocations();
+/* -----------------------
+   Render archivos (lista con checkbox y miniatura)
+----------------------- */
+function renderFiles(){
+  const wrap = document.getElementById('filesList');
+  wrap.innerHTML = '';
+  if(!files || files.length===0){
+    wrap.innerHTML = '<small>No se encontraron imágenes (usa Conectar o Refrescar).</small>';
+    updateSelectedCount(); return;
+  }
+  files.forEach((f,idx)=>{
+    const div = document.createElement('div'); div.className='file-row';
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!f.selected;
+    cb.addEventListener('change', e=>{ f.selected = e.target.checked; updateSelectedCount(); saveState(); renderFinal(); });
+    const img = document.createElement('img'); img.className='thumb'; img.src = f.thumb;
+    img.onerror = ()=>{ img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90"><rect width="100%" height="100%" fill="%23eee"/><text x="50%" y="50%" font-size="12" text-anchor="middle" fill="%23666" dy=".3em">No preview</text></svg>'; };
+    const span = document.createElement('div'); span.style.flex='1'; span.innerText = `${idx+1}. ${f.name}`;
+    div.appendChild(cb); div.appendChild(img); div.appendChild(span);
+    wrap.appendChild(div);
+  });
+  updateSelectedCount();
+}
+
+function updateSelectedCount(){ const c = files.filter(f=>f.selected).length; document.getElementById('selectedCount').innerText = c; }
+
+/* -----------------------
+   Collage: generar canvas, numerar y preview
+----------------------- */
+const collageCanvas = document.getElementById('collageCanvas');
+const collagePreview = document.getElementById('collagePreview');
+
+document.getElementById('btnGenerate').addEventListener('click', async ()=>{
+  const selected = files.filter(f=>f.selected);
+  if(selected.length===0){ alert("Selecciona al menos una foto."); return; }
+
+  const cols = Math.max(1, parseInt(document.getElementById('colsInput').value)||3);
+  const w = Math.max(80, parseInt(document.getElementById('wInput').value)||300);
+  const h = Math.round(w * 0.75);
+  const rows = Math.ceil(selected.length/cols);
+  const gap = 8;
+
+  collageCanvas.width = cols * w + (cols+1)*gap;
+  collageCanvas.height = rows * h + (rows+1)*gap;
+  const ctx = collageCanvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,collageCanvas.width,collageCanvas.height);
+
+  const imgs = await Promise.all(selected.map(s=>loadImageWithFallback(s).catch(()=>null)));
+  let i = 0;
+  for(let k=0;k<imgs.length;k++){
+    const obj = imgs[k];
+    if(!obj){ i++; continue; }
+    const img = obj.img;
+    const x = gap + (i%cols)*(w+gap);
+    const y = gap + Math.floor(i/cols)*(h+gap);
+    const ratio = Math.max(w/img.width, h/img.height);
+    const sw = Math.round(w/ratio), sh = Math.round(h/ratio);
+    const sx = Math.max(0, Math.round((img.width - sw)/2));
+    const sy = Math.max(0, Math.round((img.height - sh)/2));
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(x+6, y+6, 36, 28);
+    ctx.fillStyle='white'; ctx.font='18px sans-serif'; ctx.fillText((i+1).toString(), x+16, y+26);
+    i++;
+  }
+
+  collagePreview.src = collageCanvas.toDataURL('image/png');
+  alert("Collage generado. Pulsa Descargar para guardar la imagen.");
+});
+
+function loadImageWithFallback(fileObj){
+  return new Promise((resolve,reject)=>{
+    const tryLoad = (url, ok, fail) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = ()=>ok(img);
+      img.onerror = fail;
+      img.src = url;
+    };
+    tryLoad(fileObj.url, img => resolve({img,src:fileObj.url}), ()=> tryLoad(fileObj.thumb, img2 => resolve({img:img2,src:fileObj.thumb}), err=>reject(err)));
+  });
+}
+function loadImage(url){ return new Promise((res,rej)=>{ const img=new Image(); img.crossOrigin="anonymous"; img.onload=()=>res(img); img.onerror=rej; img.src=url; }); }
+
+document.getElementById('btnDownload').addEventListener('click', ()=>{
+  if(!collageCanvas.width){ alert("Genera primero el collage."); return; }
+  const a = document.createElement('a'); a.href = collageCanvas.toDataURL('image/png'); a.download='collage.png'; a.click();
+});
+document.getElementById('btnClearSelection').addEventListener('click', ()=>{
+  files.forEach(f=>f.selected=false); renderFiles(); renderFinal(); saveState();
+});
+
+/* -----------------------
+   Ubicaciones: guardar y miniaturas con Leaflet
+----------------------- */
+document.getElementById('btnSaveLocation').addEventListener('click', ()=>{
+  if(!navigator.geolocation){ alert("Tu navegador no soporta geolocalización."); return; }
+  const numStr = prompt("Asigna un número para esta ubicación (ej. 1):");
+  if(!numStr) return;
+  const num = parseInt(numStr);
+  if(Number.isNaN(num)){ alert("Número inválido."); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    const t = new Date().toISOString();
+    locations.push({num, lat, lon, time: t});
+    renderLocations(); renderFinal(); saveState();
+  }, err=>{ alert("Error al obtener ubicación: "+err.message); }, {enableHighAccuracy:true, timeout:10000});
+});
+
+document.getElementById('btnExportLocations').addEventListener('click', ()=>{
+  const data = JSON.stringify(locations,null,2);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data],{type:'application/json'})); a.download = 'ubicaciones.json'; a.click();
+});
+document.getElementById('btnImportLocations').addEventListener('click', ()=> document.getElementById('locFile').click());
+document.getElementById('locFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = ()=>{ try{ locations = JSON.parse(r.result); renderLocations(); renderFinal(); saveState(); }catch(err){ alert("JSON inválido") } };
+  r.readAsText(f);
+});
+
+function renderLocations(){
+  const wrap = document.getElementById('locationsList'); wrap.innerHTML='';
+  if(locations.length===0){ wrap.innerHTML = '<small>No hay ubicaciones guardadas.</small>'; return; }
+  locations.forEach(loc=>{
+    const div = document.createElement('div'); div.className='line-item';
+    const mapDiv = document.createElement('div'); mapDiv.className='smallmap';
+    setTimeout(()=>{
+      const map = L.map(mapDiv, {zoomControl:false, attributionControl:false}).setView([loc.lat, loc.lon], 17);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(map);
+      L.marker([loc.lat, loc.lon]).addTo(map);
+      map.dragging.disable(); map.touchZoom.disable(); map.doubleClickZoom.disable(); map.scrollWheelZoom.disable();
+      makeMapClickable(mapDiv, loc.lat, loc.lon);
+    },50);
+    const meta = document.createElement('div'); meta.className='meta-box';
+    meta.innerHTML = `<b>Número:</b> ${loc.num}<br/><b>Lat:</b> ${loc.lat.toFixed(6)} <b>Lon:</b> ${loc.lon.toFixed(6)}<br/><small>${loc.time}</small>`;
+    const btnDel = document.createElement('button'); btnDel.textContent='Eliminar'; btnDel.onclick=()=>{ locations = locations.filter(l=>!(l.num===loc.num && l.lat===loc.lat)); renderLocations(); renderFinal(); saveState(); };
+    div.appendChild(mapDiv); div.appendChild(meta); div.appendChild(btnDel);
+    wrap.appendChild(div);
+  });
+}
+
+/* makeMapClickable: muestra mapa ampliado en overlay. No se cierra al mover/zoom */
+function makeMapClickable(mapDiv, lat, lon){
+  mapDiv.style.cursor = 'pointer';
+  mapDiv.onclick = (e) => {
+    e.stopPropagation();
+    const overlay = document.createElement('div');
+    overlay.style.position='fixed'; overlay.style.top=0; overlay.style.left=0;
+    overlay.style.width='100%'; overlay.style.height='100%';
+    overlay.style.background='rgba(0,0,0,0.7)'; overlay.style.zIndex=9999;
+    overlay.style.display='flex'; overlay.style.justifyContent='center'; overlay.style.alignItems='center';
+
+    const mapContainer = document.createElement('div');
+    mapContainer.style.width='85%'; mapContainer.style.height='85%'; mapContainer.style.border='2px solid #fff';
+    mapContainer.style.position='relative'; mapContainer.style.borderRadius='8px'; mapContainer.style.overflow='hidden';
+    overlay.appendChild(mapContainer);
+
+    const closeBtn = document.createElement('div');
+    closeBtn.className='map-overlay-close';
+    closeBtn.innerText='Cerrar ✕';
+    closeBtn.onclick = (ev)=>{ ev.stopPropagation(); if(bigMap) bigMap.remove(); overlay.remove(); };
+    mapContainer.appendChild(closeBtn);
+
+    document.body.appendChild(overlay);
+
+    const bigMap = L.map(mapContainer, {zoomControl:true, attributionControl:false}).setView([lat, lon], 17);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(bigMap);
+    L.marker([lat, lon]).addTo(bigMap);
+
+    overlay.addEventListener('click', (ev)=>{
+      if(ev.target === overlay){
+        bigMap.remove();
+        overlay.remove();
+      }
+    });
+    mapContainer.addEventListener('click', (ev)=>{ ev.stopPropagation(); });
+  };
+}
+
+/* -----------------------
+   Parsear propuestas pegadas y asociar
+----------------------- */
+document.getElementById('btnParse').addEventListener('click', ()=>{
+  const raw = document.getElementById('proposalsInput').value.trim();
+  if(!raw){ alert("Pega las propuestas que yo te doy."); return; }
+  const parts = raw.split(/\r?\n(?=Foto\s*\d+)/i);
+  proposals = {};
+  parts.forEach(block=>{
+    const lines = block.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    if(lines.length===0) return;
+    const m = lines[0].match(/Foto\s*([0-9]+)/i);
+    if(!m) return;
+    const num = parseInt(m[1]);
+    const obj = {num, title:'', revisores:'', entrenadores:'', categoria:''};
+    lines.slice(1).forEach(line=>{
+      const k = line.match(/^([^:]+):\s*(.*)$/);
+      if(k){
+        const key = k[1].toLowerCase();
+        const val = k[2];
+        if(key.includes('título')||key.includes('titulo')||key.includes('title')) obj.title = val;
+        else if(key.includes('revisor')) obj.revisores = val;
+        else if(key.includes('entrenador')) obj.entrenadores = val;
+        else if(key.includes('categoria')||key.includes('categoría')) obj.categoria = val;
+      }
+    });
+    proposals[num] = obj;
+  });
   renderProposals();
   renderFinal();
+  saveState();
 });
+document.getElementById('btnClearProposals').addEventListener('click', ()=>{ proposals = {}; document.getElementById('proposalsList').innerHTML=''; renderFinal(); saveState(); });
+
+function renderProposals(){
+  const wrap = document.getElementById('proposalsList'); wrap.innerHTML='';
+  Object.keys(proposals).sort((a,b)=>a-b).forEach(k=>{
+    const p = proposals[k];
+    const d = document.createElement('div'); d.className='proposal';
+    d.innerHTML = `<b>Foto ${p.num}</b><br/><b>Título:</b> ${escapeHtml(p.title)}<br/><b>Revisores:</b> ${short(p.revisores)}<br/><b>Entrenadores:</b> ${short(p.entrenadores)}<br/><b>Categoría:</b> ${escapeHtml(p.categoria)}`;
+    wrap.appendChild(d);
+  });
+}
+function short(s){ if(!s) return ''; return s.length>120 ? s.slice(0,120)+'…' : s; }
+function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* -----------------------
+   Mostrar final: foto, mini-mapa, texto, copiar, ocultar
+----------------------- */
+function renderFinal(){
+  const wrap = document.getElementById('finalList'); wrap.innerHTML='';
+  const selected = files.filter(f=>f.selected);
+
+  if(selected.length===0){ wrap.innerHTML = '<small>No hay fotos seleccionadas.</small>'; return; }
+
+  selected.forEach((f,i)=>{
+    const num = i+1;
+    // Si está oculto, mostramos una barra compacta con botón "Mostrar"
+    if(hiddenSet.has(num)){
+      const bar = document.createElement('div'); bar.className='hidden-card';
+      bar.innerHTML = `<div>Foto ${num} — Oculta</div>`;
+      const btnShow = document.createElement('button'); btnShow.textContent='Mostrar'; btnShow.className='small-btn';
+      btnShow.onclick = ()=>{ hiddenSet.delete(num); saveState(); renderFinal(); };
+      bar.appendChild(btnShow);
+      wrap.appendChild(bar);
+      return;
+    }
+
+    const p = proposals[num] || {num, title:'', revisores:'', entrenadores:'', categoria:''};
+    const loc = locations.find(l=>l.num===num);
+    const card = document.createElement('div'); card.className='final-card';
+
+    const left = document.createElement('div'); left.style.width='180px';
+    const img = document.createElement('img'); img.src = f.thumb || f.url; img.className='final-thumb';
+    left.appendChild(img);
+
+    if(loc){
+      const miniMapWrap = document.createElement('div'); miniMapWrap.style.marginTop='8px';
+      const miniMapDiv = document.createElement('div'); miniMapDiv.className='smallmap';
+      miniMapWrap.appendChild(miniMapDiv); left.appendChild(miniMapWrap);
+      setTimeout(()=>{
+        const map = L.map(miniMapDiv, {zoomControl:false, attributionControl:false}).setView([loc.lat, loc.lon], 17);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:19}).addTo(map);
+        L.marker([loc.lat, loc.lon]).addTo(map);
+        map.dragging.disable(); map.touchZoom.disable(); map.doubleClickZoom.disable(); map.scrollWheelZoom.disable();
+        makeMapClickable(miniMapDiv, loc.lat, loc.lon);
+      },50);
+    } else {
+      const msg = document.createElement('small'); msg.style.color='#666'; msg.textContent='Sin ubicación guardada para este número';
+      left.appendChild(msg);
+    }
+
+    const right = document.createElement('div'); right.className='meta-box';
+    // Mostrar texto y botón copiar
+    const block = (label, id, text) => {
+      const cont = document.createElement('div'); cont.style.marginTop='6px';
+      const lab = document.createElement('b'); lab.innerText = label+': ';
+      const span = document.createElement('span'); span.id = id; span.innerText = text || '';
+      const btn = document.createElement('button'); btn.className='copy-btn small-btn'; btn.innerText='Copiar';
+      btn.addEventListener('click', ()=>{ copyToClipboard(span.innerText).then(()=>{ btn.innerText='Copiado'; setTimeout(()=>btn.innerText='Copiar',900); }); });
+      cont.appendChild(lab); cont.appendChild(span); cont.appendChild(btn);
+      return cont;
+    };
+
+    const titleBlock = block('Título', `t-${num}`, p.title);
+    const rBlock = block('Revisores', `r-${num}`, p.revisores);
+    const eBlock = block('Entrenadores', `e-${num}`, p.entrenadores);
+    const cBlock = block('Categoría', `c-${num}`, p.categoria);
+
+    const header = document.createElement('div'); header.innerHTML = `<b>Foto ${num}</b>`;
+    right.appendChild(header);
+    right.appendChild(titleBlock);
+    right.appendChild(rBlock);
+    right.appendChild(eBlock);
+    right.appendChild(cBlock);
+
+    const btns = document.createElement('div'); btns.style.marginTop='8px';
+    const hideBtn = document.createElement('button'); hideBtn.className='small-btn'; hideBtn.innerText='Ocultar';
+    hideBtn.onclick = ()=>{ hiddenSet.add(num); saveState(); renderFinal(); };
+    btns.appendChild(hideBtn);
+    right.appendChild(btns);
+
+    card.appendChild(left); card.appendChild(right);
+    wrap.appendChild(card);
+  });
+}
+
+/* -----------------------
+   Utilidades
+----------------------- */
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+  return new Promise((res,rej)=>{
+    const ta = document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); ta.remove(); res(); }catch(e){ ta.remove(); rej(e); }
+  });
+}
+
+/* -----------------------
+   Inicialización - eventos globales
+----------------------- */
+document.getElementById('btnConnect').addEventListener('click', ()=>{ listarDrive(); });
+document.getElementById('btnRefresh').addEventListener('click', ()=>{ listarDrive(); });
+
+window.addEventListener('load', ()=>{
+  loadState();
+  // si ya tenemos files guardadas en localStorage, las mostramos; si no, pedimos Drive
+  if(files && files.length>0){
+    renderFiles(); renderLocations(); renderProposals(); renderFinal();
+  } else {
+    // intenta listar automáticamente para conveniencia
+    listarDrive();
+  }
+});
+
+/* -----------------------
+   helpers extra (renderProposals inicial, etc.)
+----------------------- */
+function renderProposals(){ // si hubo parse previo, mostrar un resumen
+  const wrap = document.getElementById('proposalsList'); wrap.innerHTML='';
+  const keys = Object.keys(proposals).sort((a,b)=>a-b);
+  if(keys.length===0){ wrap.innerHTML = '<small>No hay propuestas pegadas.</small>'; return; }
+  keys.forEach(k=>{
+    const p = proposals[k];
+    const d = document.createElement('div'); d.className='proposal';
+    d.innerHTML = `<b>Foto ${p.num}</b><br/><b>Título:</b> ${escapeHtml(p.title)}<br/><b>Revisores:</b> ${short(p.revisores)}<br/><b>Entrenadores:</b> ${short(p.entrenadores)}<br/><b>Categoría:</b> ${escapeHtml(p.categoria)}`;
+    wrap.appendChild(d);
+  });
+}
+
+/* -----------------------
+   pequeñas utilidades
+----------------------- */
+function short(s){ if(!s) return ''; return s.length>120 ? s.slice(0,120)+'…' : s; }
+function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
 </script>
 </body>
 </html>
+
 
