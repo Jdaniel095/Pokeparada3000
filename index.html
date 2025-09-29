@@ -273,22 +273,37 @@ function renderLocations(){
     div.appendChild(thumbDiv);
 
     const thumbMap = L.map(thumbDiv, {
-      attributionControl: false,
-      zoomControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      tap: false
-    }).setView([loc.lat, loc.lng], 16);
+  attributionControl: false,
+  zoomControl: false,
+  dragging: false,
+  scrollWheelZoom: false,
+  doubleClickZoom: false,
+  boxZoom: false,
+  keyboard: false,
+  tap: false
+});
 
-    L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 19 }
-    ).addTo(thumbMap);
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 19 }
+).addTo(thumbMap);
 
-    L.marker([loc.lat, loc.lng]).addTo(thumbMap);
+// Ícono más pequeño
+const miniIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconSize: [20, 32],
+  iconAnchor: [10, 32]
+});
+
+// Marcador y ajustar vista
+const marker = L.marker([loc.lat, loc.lng], { icon: miniIcon }).addTo(thumbMap);
+thumbMap.setView([loc.lat, loc.lng], 16);
+
+// 🔑 Importante: refrescar para que el ícono no se “pierda”
+setTimeout(() => {
+  thumbMap.invalidateSize();
+}, 200);
+
 
     thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
 
