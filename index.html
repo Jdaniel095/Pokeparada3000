@@ -44,6 +44,19 @@
     <div id="filesList" class="files-wrap"></div>
   </section>
 
+  <!-- 2. Seleccionar y generar collage -->
+<section>
+  <h2>2) Selecciona fotos y genera collage numerado</h2>
+  <div class="controls-row">
+    <button id="btnGenerateCollage" class="primary">🎨 Generar collage</button>
+    <button id="btnDownloadCollage">⬇️ Descargar collage</button>
+  </div>
+  <div id="collageArea" style="margin-top:12px;text-align:center">
+    <canvas id="collageCanvas"></canvas>
+    <img id="collagePreview" style="margin-top:12px;max-width:90%;border:1px solid #ccc;border-radius:6px;display:none"/>
+  </div>
+</section>
+  
 <script>
 /* ===== CONFIG ===== */
 const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
@@ -101,5 +114,67 @@ document.getElementById("btnClearAll").onclick = ()=>{
   renderFiles();
 };
 </script>
+<script>
+/* === Collage === */
+function generateCollage(){
+  const canvas = document.getElementById("collageCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const selFiles = files.filter(f => selected.has(f.id));
+  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
+
+  const cols = 3; // fijo en 3 columnas
+  const w = 300; // ancho por foto
+  const h = 220; // alto por foto
+  const rows = Math.ceil(selFiles.length/cols);
+
+  canvas.width = cols*w;
+  canvas.height = rows*h;
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.font="20px Arial";
+  ctx.fillStyle="#000";
+  ctx.textAlign="left";
+
+  selFiles.forEach((f,idx)=>{
+    const img = new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      const row = Math.floor(idx/cols);
+      const col = idx%cols;
+      const x = col*w;
+      const y = row*h;
+      ctx.drawImage(img,x,y,w,h);
+      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillRect(x,y,40,28);
+      ctx.fillStyle="#fff";
+      ctx.fillText(`#${idx+1}`,x+8,y+20);
+    };
+    img.src = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s400") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
+  });
+
+  // mostrar preview
+  setTimeout(()=>{
+    const dataUrl = canvas.toDataURL("image/png");
+    document.getElementById("collagePreview").src = dataUrl;
+    document.getElementById("collagePreview").style.display="block";
+  },800);
+}
+
+function downloadCollage(){
+  const canvas = document.getElementById("collageCanvas");
+  const link = document.createElement("a");
+  link.download="collage.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+document.getElementById("btnGenerateCollage").onclick = generateCollage;
+document.getElementById("btnDownloadCollage").onclick = downloadCollage;
+</script>
+  
 </body>
 </html>
