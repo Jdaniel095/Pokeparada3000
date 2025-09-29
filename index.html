@@ -1,246 +1,51 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Wayfarer Helper - Collage</title>
-
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<style>
-  body{font-family:system-ui,Segoe UI,Arial;margin:0;padding:0;background:#f4f6f9;color:#333;}
-  header{background:#0b84ff;color:#fff;padding:14px;text-align:center;font-size:20px;font-weight:bold}
-  section{margin:20px auto;max-width:1100px;padding:14px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
-  h2{margin:0 0 12px;color:#0b84ff;font-size:18px}
-  .controls-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-  button{padding:8px 14px;border-radius:6px;border:0;cursor:pointer;font-size:14px;transition:0.2s}
-  button.primary{background:#0b84ff;color:#fff}
-  button.primary:hover{background:#006ad1}
-  button.secondary{background:#eee}
-  button.secondary:hover{background:#ddd}
-  .files-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;max-height:480px;overflow-y:auto;padding:6px}
-  .file-card{position:relative;border:1px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa;cursor:pointer;transition:0.2s}
-  .file-card:hover{box-shadow:0 2px 6px rgba(0,0,0,0.2)}
-  .file-card img{width:100%;height:120px;object-fit:cover;display:block}
-  .file-check{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #0b84ff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0b84ff}
-  .file-card.selected .file-check{background:#0b84ff;color:#fff}
-  .file-num{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 6px;border-radius:6px;font-size:12px}
-</style>
+  <meta charset="UTF-8">
+  <title>Propuestas Wayfarer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+    section { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; }
+    textarea { width: 100%; min-height: 180px; }
+    button { margin-top: 10px; padding: 8px 14px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0d47a1; }
+    #collagePreview { margin-top: 10px; max-width: 100%; display: none; border: 2px solid #444; border-radius: 6px; }
+    .proposalCard { border:1px solid #ccc; padding:10px; margin-top:10px; border-radius:6px; background:#fafafa; }
+  </style>
 </head>
 <body>
-  <header>📸 Wayfarer Helper - Collage</header>
 
-  <!-- 1. Conectar y listar fotos -->
+  <!-- 3. Guardar ubicaciones -->
   <section>
-    <h2>1) Conectar y listar fotos (Drive)</h2>
-    <div class="controls-row">
-      <button id="btnConnect" class="primary">Conectar y listar</button>
-      <button id="btnRefresh" class="secondary">Refrescar</button>
-      <button id="btnSelectAll" class="secondary">Seleccionar todo</button>
-      <button id="btnClearAll" class="secondary">Limpiar selección</button>
-    </div>
-    <div id="filesList" class="files-wrap"></div>
+    <h2>3) Guardar ubicaciones (desde tu móvil)</h2>
+    <button id="btnSaveLocation">📍 Guardar Ubicación</button>
+    <div id="locationsList" style="margin-top:15px;display:flex;flex-direction:column;gap:12px"></div>
   </section>
 
- <!-- 2. Seleccionar y generar collage -->
-<section>
-  <h2>2) Selecciona fotos y genera collage numerado</h2>
-  <div class="controls-row">
-    <button id="btnGenerateCollage" class="primary">🎨 Generar collage</button>
-    <button id="btnDownloadCollage">⬇️ Descargar collage</button>
-  </div>
+  <!-- 4. Propuestas (Texto generado) -->
+  <section>
+    <h2>4) Propuestas Wayfarer</h2>
+    <textarea id="proposalsText" placeholder="Pega aquí el bloque de propuestas generado..."></textarea>
+    <br>
+    <button onclick="processProposals()">Procesar propuestas</button>
+    <div id="proposalsPreview"></div>
+  </section>
 
-  <!-- Canvas oculto solo para generar el collage -->
-  <canvas id="collageCanvas" style="display:none"></canvas>
+  <!-- Collage -->
+  <section>
+    <h2>Collage</h2>
+    <canvas id="collageCanvas" style="display:none;"></canvas>
+    <button onclick="generateCollage()">Generar Collage</button>
+    <img id="collagePreview" alt="Collage generado">
+  </section>
 
-  <!-- Preview reducido -->
-  <div id="collageArea" style="margin-top:12px;text-align:center">
-    <img id="collagePreview" 
-         style="max-width:250px;cursor:pointer;display:none;border:1px solid #ccc;border-radius:6px"/>
-  </div>
-</section>
-  
-  <!-- Modal para agrandar el collage -->
-<div id="modalCollage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
- background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999">
-  <img id="modalImg" style="max-width:90%;max-height:90%;border:3px solid white;border-radius:8px"/>
-</div>
-
-<!-- 3. Guardar ubicaciones -->
-<section>
-  <h2>3) Guardar ubicaciones (desde tu móvil)</h2>
-  <button id="btnSaveLocation" class="primary">📍 Guardar Ubicación</button>
-
-  <div id="locationsList" style="margin-top:15px;display:flex;flex-direction:column;gap:12px"></div>
-</section>
-
-<!-- Modal para ver mapa interactivo -->
-<div id="modalMap" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
- background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999">
-  <div style="position:relative;width:90%;height:90%">
-    <div id="leafletMap" style="width:100%;height:100%;border:3px solid white;border-radius:8px"></div>
-    <button onclick="closeMap()" style="position:absolute;top:10px;right:10px;padding:6px 10px;
-     background:#fff;border:none;border-radius:4px;cursor:pointer">❌ Cerrar</button>
-  </div>
-</div>
-
-<!-- 4. Editor automático de propuestas -->
-<section>
-  <h2>4) Editor de propuestas</h2>
-  <p>Pega aquí todo el texto generado por el asistente y presiona "Procesar".</p>
-
-  <textarea id="bulkInput" rows="10" style="width:100%;"></textarea>
-
-  <div style="margin-top:10px;">
-    <button id="btnProcess" class="primary">⚡ Procesar propuestas</button>
-  </div>
-
-  <!-- Vista previa -->
-  <div id="proposalList" style="margin-top:15px;display:flex;flex-direction:column;gap:12px"></div>
-</section>
-
-
-
-  
 <script>
-/* ===== CONFIG ===== */
-const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
-const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
-const SHEET_URL = "https://script.google.com/macros/s/AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT/exec";
-
-let files = [];
-let selected = new Set();
-
-/* === 1. Listar archivos de Drive === */
-async function listDriveFiles(){
-  const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink)`;
-  const res = await fetch(url);
-  const data = await res.json();
-  files = data.files || [];
-  renderFiles();
-}
-
-/* === Renderizar lista === */
-function renderFiles(){
-  const cont = document.getElementById("filesList");
-  cont.innerHTML = "";
-  files.forEach((f,i)=>{
-    const isSel = selected.has(f.id);
-    // aseguramos thumbnail
-    const thumb = f.thumbnailLink 
-      ? f.thumbnailLink.replace(/=s\d+$/, "=s200") 
-      : `https://drive.google.com/uc?export=view&id=${f.id}`;
-
-    const div = document.createElement("div");
-    div.className = "file-card"+(isSel?" selected":"");
-    div.innerHTML = `
-      <div class="file-check">${isSel?"✓":""}</div>
-      <img src="${thumb}" alt="${f.name}">
-      <div class="file-num">#${i+1}</div>
-    `;
-    div.onclick = ()=>{
-      if(selected.has(f.id)) selected.delete(f.id);
-      else selected.add(f.id);
-      renderFiles();
-    };
-    cont.appendChild(div);
-  });
-}
-
-/* === Botones === */
-document.getElementById("btnConnect").onclick = listDriveFiles;
-document.getElementById("btnRefresh").onclick = listDriveFiles;
-document.getElementById("btnSelectAll").onclick = ()=>{
-  files.forEach(f=>selected.add(f.id));
-  renderFiles();
-};
-document.getElementById("btnClearAll").onclick = ()=>{
-  selected.clear();
-  renderFiles();
-};
-</script>
-<script>
-/* === Collage === */
-function generateCollage(){
-  const canvas = document.getElementById("collageCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const selFiles = files.filter(f => selected.has(f.id));
-  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
-
-  const cols = 3; // columnas
-  const w = 300; // ancho por foto
-  const h = 220; // alto por foto
-  const rows = Math.ceil(selFiles.length/cols);
-
-  canvas.width = cols*w;
-  canvas.height = rows*h;
-
-  ctx.fillStyle="#fff";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.font="20px Arial";
-  ctx.fillStyle="#000";
-  ctx.textAlign="left";
-
-  selFiles.forEach((f,idx)=>{
-    const img = new Image();
-    img.crossOrigin="anonymous";
-    img.onload=()=>{
-      const row = Math.floor(idx/cols);
-      const col = idx%cols;
-      const x = col*w;
-      const y = row*h;
-      ctx.drawImage(img,x,y,w,h);
-      ctx.fillStyle="rgba(0,0,0,0.6)";
-      ctx.fillRect(x,y,40,28);
-      ctx.fillStyle="#fff";
-      ctx.fillText(`#${idx+1}`,x+8,y+20);
-    };
-    img.src = f.thumbnailLink 
-      ? f.thumbnailLink.replace(/=s\d+$/, "=s400") 
-      : `https://drive.google.com/uc?export=view&id=${f.id}`;
-  });
-
-  // mostrar preview
-  setTimeout(()=>{
-    const dataUrl = canvas.toDataURL("image/png");
-    const preview = document.getElementById("collagePreview");
-    preview.src = dataUrl;
-    preview.style.display="block";
-  },800);
-}
-
-function downloadCollage(){
-  const canvas = document.getElementById("collageCanvas");
-  const link = document.createElement("a");
-  link.download="collage.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
-// Ampliar al hacer clic
-document.getElementById("collagePreview").onclick = ()=>{
-  const modal = document.getElementById("modalCollage");
-  const modalImg = document.getElementById("modalImg");
-  modal.style.display="flex";
-  modalImg.src = document.getElementById("collagePreview").src;
-};
-
-// Cerrar modal
-document.getElementById("modalCollage").onclick = ()=>{
-  document.getElementById("modalCollage").style.display="none";
-};
-
-document.getElementById("btnGenerateCollage").onclick = generateCollage;
-document.getElementById("btnDownloadCollage").onclick = downloadCollage;
-
+/* ================= SECCION 3 ================= */
 let locations = [];
 let counter = 1;
 let currentMap = null;
 
-/* === Guardar ubicación con número automático === */
 function saveLocation(){
   if(!navigator.geolocation){
     alert("Geolocalización no soportada.");
@@ -250,11 +55,7 @@ function saveLocation(){
     const lat = pos.coords.latitude.toFixed(6);
     const lng = pos.coords.longitude.toFixed(6);
 
-    const location = {
-      id: Date.now(),
-      order: counter,
-      lat, lng
-    };
+    const location = { id: Date.now(), order: counter, lat, lng };
     locations.push(location);
     counter++;
     renderLocations();
@@ -263,229 +64,135 @@ function saveLocation(){
   });
 }
 
-/* === Renderizar la lista de ubicaciones === */
 function renderLocations(){
   const list = document.getElementById("locationsList");
   list.innerHTML = "";
-
   locations.sort((a,b)=>a.order-b.order).forEach(loc=>{
     const div = document.createElement("div");
-    div.style.display="flex";
-    div.style.alignItems="center";
-    div.style.justifyContent="space-between";
-    div.style.gap="12px";
-    div.style.border="1px solid #ccc";
-    div.style.padding="8px";
-    div.style.borderRadius="6px";
-    div.style.background="#f9f9f9";
+    div.className="proposalCard";
 
-    // Mini-mapa satelital Leaflet (Esri World Imagery)
-    const thumbDiv = document.createElement("div");
-    thumbDiv.style.width = "150px";
-    thumbDiv.style.height = "100px";
-    thumbDiv.style.border = "1px solid #999";
-    thumbDiv.style.borderRadius = "4px";
-    thumbDiv.style.cursor = "pointer";
-    div.appendChild(thumbDiv);
+    const img = document.createElement("img");
+    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=satellite&markers=${loc.lat},${loc.lng},red-pushpin`;
+    img.style.cursor="pointer";
+    img.style.border="1px solid #999";
+    img.style.borderRadius="4px";
+    img.onclick=()=>openMap(loc.lat,loc.lng);
 
-    const thumbMap = L.map(thumbDiv, {
-  attributionControl: false,
-  zoomControl: false,
-  dragging: false,
-  scrollWheelZoom: false,
-  doubleClickZoom: false,
-  boxZoom: false,
-  keyboard: false,
-  tap: false
-});
-
-L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom: 19 }
-).addTo(thumbMap);
-
-// Ícono más pequeño
-const miniIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconSize: [20, 32],
-  iconAnchor: [10, 32]
-});
-
-// Marcador y ajustar vista
-const marker = L.marker([loc.lat, loc.lng], { icon: miniIcon }).addTo(thumbMap);
-thumbMap.setView([loc.lat, loc.lng], 16);
-
-// 🔑 Importante: refrescar para que el ícono no se “pierda”
-setTimeout(() => {
-  thumbMap.invalidateSize();
-}, 200);
-
-
-    thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
-
-    // Detalles
     const details = document.createElement("div");
-    details.innerHTML = `<strong>Propuesta ${loc.order}</strong><br>
-                         📍 ${loc.lat}, ${loc.lng}`;
+    details.innerHTML = `<strong>Propuesta ${loc.order}</strong><br>📍 ${loc.lat}, ${loc.lng}`;
+
+    div.appendChild(img);
     div.appendChild(details);
-
-    // Botones
-    const controls = document.createElement("div");
-    controls.style.display="flex";
-    controls.style.flexDirection="row";
-    controls.style.gap="6px";
-
-    const btnUp = document.createElement("button");
-    btnUp.textContent="⬆️";
-    btnUp.onclick=()=>moveLocation(loc.id,-1);
-
-    const btnDown = document.createElement("button");
-    btnDown.textContent="⬇️";
-    btnDown.onclick=()=>moveLocation(loc.id,1);
-
-    const btnEdit = document.createElement("button");
-    btnEdit.textContent="✏️ Editar #";
-    btnEdit.onclick=()=>{
-      const newOrder = parseInt(prompt("Nuevo número de propuesta:", loc.order));
-      if(!isNaN(newOrder)){
-        loc.order=newOrder;
-        renderLocations();
-      }
-    };
-
-    const btnDelete = document.createElement("button");
-    btnDelete.textContent="🗑️ Eliminar";
-    btnDelete.onclick=()=>{
-      locations=locations.filter(l=>l.id!==loc.id);
-      renderLocations();
-    };
-
-    controls.appendChild(btnUp);
-    controls.appendChild(btnDown);
-    controls.appendChild(btnEdit);
-    controls.appendChild(btnDelete);
-
-    div.appendChild(controls);
-
     list.appendChild(div);
   });
 }
 
-
-/* === Mover arriba/abajo === */
-function moveLocation(id,dir){
-  const index = locations.findIndex(l=>l.id===id);
-  if(index<0) return;
-  const targetIndex = index+dir;
-  if(targetIndex<0 || targetIndex>=locations.length) return;
-  const tempOrder = locations[index].order;
-  locations[index].order = locations[targetIndex].order;
-  locations[targetIndex].order = tempOrder;
-  renderLocations();
-}
-
-/* === Abrir mapa interactivo === */
 function openMap(lat,lng){
-  const modal = document.getElementById("modalMap");
-  modal.style.display="flex";
-
-  setTimeout(()=>{
-    if(currentMap){ currentMap.remove(); }
-    currentMap = L.map("leafletMap").setView([lat,lng],16);
-  L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom: 19, attribution: "Tiles © Esri" }
-).addTo(currentMap);
-    L.marker([lat,lng]).addTo(currentMap);
-  },200);
+  alert(`Mapa ampliado de ${lat}, ${lng} (modal omitido en esta demo)`);
 }
 
-/* === Cerrar mapa === */
-function closeMap(){
-  document.getElementById("modalMap").style.display="none";
-  if(currentMap){
-    currentMap.remove();
-    currentMap = null;
-  }
-}
-
-/* Cerrar modal si clic afuera */
-document.getElementById("modalMap").onclick=(e)=>{
-  if(e.target.id==="modalMap"){
-    closeMap();
-  }
-};
-
-/* Botón guardar */
 document.getElementById("btnSaveLocation").onclick = saveLocation;
 
-
+/* ================= SECCION 4 ================= */
 let proposals = [];
 
-let proposals = [];
+function processProposals(){
+  const text = document.getElementById("proposalsText").value.trim();
+  if(!text){ alert("Pega el bloque de propuestas primero."); return; }
 
-function processBulkInput() {
-  const text = document.getElementById("bulkInput").value.trim();
-  if (!text) {
-    alert("Debes pegar el bloque de propuestas.");
-    return;
-  }
+  const blocks = text.split(/#\d+/).filter(b=>b.trim()!=="");
 
-  proposals = []; // reiniciar
-
-  // Dividimos por propuestas (#n)
-  const blocks = text.split(/#(\d+)/).filter(Boolean);
-
-  for (let i = 0; i < blocks.length; i += 2) {
-    const num = parseInt(blocks[i].trim());
-    const content = blocks[i + 1].trim();
-
-    // Extraer campos con regex
+  proposals = blocks.map((content,idx)=>{
     const titleMatch = content.match(/Título:\s*(.+)/i);
-    const descMatch = content.match(/Descripción:\s*([\s\S]*?)\n/i);
-    const wayfarerMatch = content.match(/Wayfarer:\s*([\s\S]*?)\n/i);
+    const descMatch = content.match(/Descripción:\s*([\s\S]*?)(?=Wayfarer:|Categoría:|$)/i);
+    const wayfarerMatch = content.match(/Wayfarer:\s*([\s\S]*?)(?=Categoría:|$)/i);
     const categoryMatch = content.match(/Categoría:\s*(.+)/i);
 
-    proposals.push({
-      num,
+    return {
+      order: idx+1,
       title: titleMatch ? titleMatch[1].trim() : "",
-      desc: descMatch ? descMatch[1].trim() : "",
+      description: descMatch ? descMatch[1].trim() : "",
       wayfarer: wayfarerMatch ? wayfarerMatch[1].trim() : "",
       category: categoryMatch ? categoryMatch[1].trim() : ""
-    });
-  }
+    };
+  });
 
   renderProposals();
 }
 
-function renderProposals() {
-  const list = document.getElementById("proposalList");
-  list.innerHTML = "";
-
-  proposals.sort((a, b) => a.num - b.num).forEach(p => {
-    const div = document.createElement("div");
-    div.style.border = "1px solid #ccc";
-    div.style.padding = "8px";
-    div.style.borderRadius = "6px";
-    div.style.background = "#f9f9f9";
-
-    div.innerHTML = `
-      <strong>Propuesta #${p.num}</strong><br>
-      <b>Título:</b> ${p.title}<br>
-      <b>Descripción:</b> ${p.desc}<br>
+function renderProposals(){
+  const preview = document.getElementById("proposalsPreview");
+  preview.innerHTML = "";
+  proposals.forEach(p=>{
+    const card = document.createElement("div");
+    card.className="proposalCard";
+    card.innerHTML = `
+      <strong>#${p.order} - ${p.title}</strong><br>
+      <em>${p.description}</em><br>
       <b>Wayfarer:</b> ${p.wayfarer}<br>
       <b>Categoría:</b> ${p.category}
     `;
-
-    list.appendChild(div);
+    preview.appendChild(card);
   });
 }
 
-document.getElementById("btnProcess").onclick = processBulkInput;
+/* ================= COLLAGE ================= */
+let files = [
+  {id:"1", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+1"},
+  {id:"2", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+2"},
+  {id:"3", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+3"},
+  {id:"4", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+4"},
+  {id:"5", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+5"},
+  {id:"6", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+6"}
+];
+let selected = new Set(files.map(f=>f.id));
 
+function generateCollage(){
+  const canvas = document.getElementById("collageCanvas");
+  const ctx = canvas.getContext("2d");
 
-  
+  const selFiles = files.filter(f => selected.has(f.id));
+  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
+
+  const cols = 3;
+  const w = 300;
+  const h = 220;
+  const rows = Math.ceil(selFiles.length/cols);
+
+  canvas.width = cols*w;
+  canvas.height = rows*h;
+  ctx.fillStyle="#fff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  let loaded = 0;
+  selFiles.forEach((f,idx)=>{
+    const img = new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      const row = Math.floor(idx/cols);
+      const col = idx%cols;
+      const x = col*w;
+      const y = row*h;
+      ctx.drawImage(img,x,y,w,h);
+
+      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillRect(x,y,40,28);
+      ctx.fillStyle="#fff";
+      ctx.font="20px Arial";
+      ctx.fillText(`#${idx+1}`,x+8,y+20);
+
+      loaded++;
+      if(loaded === selFiles.length){
+        const dataUrl = canvas.toDataURL("image/png");
+        const preview = document.getElementById("collagePreview");
+        preview.src = dataUrl;
+        preview.style.display="block";
+      }
+    };
+    img.src = f.thumbnailLink;
+  });
+}
 </script>
-  
 </body>
 </html>
+
