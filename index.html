@@ -265,7 +265,7 @@ function renderLocations(){
 
     // Miniatura con imagen estática de OSM
     const img = document.createElement("img");
-    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=mapnik&markers=${loc.lat},${loc.lng},red-pushpin`;
+    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=satellite&markers=${loc.lat},${loc.lng},red-pushpin`;
     img.style.cursor="pointer";
     img.style.border="1px solid #999";
     img.style.borderRadius="4px";
