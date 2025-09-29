@@ -3,221 +3,344 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Gestión de Propuestas</title>
+<title>Wayfarer Helper - Collage</title>
 
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
-  h2 { margin-top: 25px; }
-  button { margin: 5px; padding: 6px 12px; cursor: pointer; }
-  .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .thumb { width: 80px; height: 60px; object-fit: cover; border: 1px solid #ccc; }
-  #filesList { margin-top: 10px; }
-  #collagePreview { margin-top: 10px; max-width: 200px; cursor: pointer; border: 1px solid #ccc; }
-  #modalCollage {
-    display: none; position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;
+  body{font-family:system-ui,Segoe UI,Arial;margin:0;padding:0;background:#f4f6f9;color:#333;}
+  header{background:#0b84ff;color:#fff;padding:14px;text-align:center;font-size:20px;font-weight:bold}
+  section{margin:20px auto;max-width:1100px;padding:14px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+  h2{margin:0 0 12px;color:#0b84ff;font-size:18px}
+  .controls-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  button{padding:8px 14px;border-radius:6px;border:0;cursor:pointer;font-size:14px;transition:0.2s}
+  button.primary{background:#0b84ff;color:#fff}
+  button.primary:hover{background:#006ad1}
+  button.secondary{background:#eee}
+  button.secondary:hover{background:#ddd}
+  .files-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;max-height:480px;overflow-y:auto;padding:6px}
+  .file-card{position:relative;border:1px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa;cursor:pointer;transition:0.2s}
+  .file-card:hover{box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+  .file-card img{width:100%;height:120px;object-fit:cover;display:block}
+  .file-check{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #0b84ff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0b84ff}
+  .file-card.selected .file-check{background:#0b84ff;color:#fff}
+  .file-num{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 6px;border-radius:6px;font-size:12px}
+
+
+   #ubicacionesList {
+    margin-top: 15px;
+    text-align: center;
   }
-  #modalCollage img { max-width: 90%; max-height: 90%; border: 3px solid #fff; border-radius: 10px; }
+
+  .ubicacion-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin: 10px auto;
+    padding: 10px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .ubicacion-item img {
+    max-width: 120px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .ubicacion-item img:hover {
+    transform: scale(1.05);
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+    border: 3px solid #fff;
+  }
+
+  .modal .close {
+    position: absolute;
+    top: 15px; right: 30px;
+    font-size: 40px;
+    color: white;
+    cursor: pointer;
+  }
+
 </style>
 </head>
 <body>
-  <h1>📸 Gestión de Propuestas</h1>
+  <header>📸 Wayfarer Helper - Collage</header>
 
-  <!-- ========================= -->
-  <!-- 1) Conectar y listar Drive -->
-  <!-- ========================= -->
-  <h2>1) Listar fotos de la carpeta (Drive)</h2>
-  <button onclick="listarDrive()">🔄 Listar fotos</button>
-  <button onclick="seleccionarTodo()">✅ Seleccionar todo</button>
-  <div id="filesList"></div>
+  <!-- 1. Conectar y listar fotos -->
+  <section>
+    <h2>1) Conectar y listar fotos (Drive)</h2>
+    <div class="controls-row">
+      <button id="btnConnect" class="primary">Conectar y listar</button>
+      <button id="btnRefresh" class="secondary">Refrescar</button>
+      <button id="btnSelectAll" class="secondary">Seleccionar todo</button>
+      <button id="btnClearAll" class="secondary">Limpiar selección</button>
+    </div>
+    <div id="filesList" class="files-wrap"></div>
+  </section>
 
-  <!-- ========================= -->
-  <!-- 2) Generar Collage -->
-  <!-- ========================= -->
-  <h2>2) Generar collage numerado</h2>
-  <button onclick="generarCollage()">🎨 Generar collage</button>
-  <button onclick="descargarCollage()">💾 Descargar collage</button>
-  <canvas id="collageCanvas" style="display:none;"></canvas>
-  <img id="collagePreview" onclick="abrirCollageModal()" />
-
-  <!-- Modal collage -->
-  <div id="modalCollage" onclick="cerrarCollageModal()">
-    <img id="modalCollageImg" />
+<!-- 2. Seleccionar y generar collage -->
+<section>
+  <h2>2) Selecciona fotos y genera collage numerado</h2>
+  <div class="controls-row">
+    <button id="btnGenerateCollage" class="primary">🎨 Generar collage</button>
+    <button id="btnDownloadCollage">⬇️ Descargar collage</button>
   </div>
 
-  <!-- ========================= -->
-  <!-- 3) Guardar Ubicación -->
-  <!-- ========================= -->
-  <h2>3) Guardar Ubicación</h2>
-  <div>
-    <label>Número de foto:</label>
-    <input type="number" id="fotoNumero" min="1" placeholder="Ej: 5">
-    <button onclick="activarUbicacion()">📍 Usar ubicación actual</button>
-  </div>
-  <div id="ubicacionesList" style="display:flex; flex-direction:column; gap:10px; max-width:800px; margin-top:10px;"></div>
+  <!-- El canvas está oculto -->
+  <canvas id="collageCanvas" style="display:none"></canvas>
 
-  <!-- Modal mapa -->
-  <div id="modalUbicacion" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:1000;">
-    <span onclick="cerrarModal()" style="position:absolute; top:15px; right:25px; font-size:30px; color:white; cursor:pointer;">&times;</span>
-    <div id="modalMap" style="width:90%; height:80%; border:2px solid #fff; border-radius:8px;"></div>
+  <!-- Preview reducido -->
+  <div id="collageArea" style="margin-top:12px;text-align:center">
+    <img id="collagePreview" style="max-width:250px;cursor:pointer;display:none;border:1px solid #ccc;border-radius:6px"/>
   </div>
+</section>
+
+<!-- Modal para agrandar la imagen -->
+<div id="modalCollage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+ background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999">
+  <img id="modalImg" style="max-width:90%;max-height:90%;border:3px solid white;border-radius:8px"/>
+</div>
+
+<!-- ========================= -->
+<!-- 3) UBICACIÓN -->
+<!-- ========================= -->
+<h2>3) Guardar Ubicación</h2>
+
+<div class="controls-row">
+  <label>Número de foto:</label>
+  <input type="number" id="fotoNumero" min="1" placeholder="Ej: 5" style="width:80px; padding:5px;">
+
+  <button onclick="activarUbicacion()">📍 Usar ubicación actual</button>
+</div>
+
+<div id="ubicacionesList"></div>
+
+<!-- Modal para ver foto grande -->
+<div id="modalUbicacion" class="modal">
+  <span class="close" onclick="cerrarModal()">&times;</span>
+  <img id="modalImg">
+</div>
 
 <script>
-/* ====== CONFIG ====== */
+/* ===== CONFIG ===== */
 const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
 const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT/exec";
 
-/* ====== SECCIÓN 1: DRIVE ====== */
 let files = [];
-let seleccionados = [];
+let selected = new Set();
 
-function listarDrive() {
-  const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType)`;
-  fetch(url).then(r => r.json()).then(data => {
-    files = data.files || [];
-    renderFiles();
-  });
+/* === 1. Listar archivos de Drive === */
+async function listDriveFiles(){
+  const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink)`;
+  const res = await fetch(url);
+  const data = await res.json();
+  files = data.files || [];
+  renderFiles();
 }
 
-function renderFiles() {
-  const list = document.getElementById("filesList");
-  list.innerHTML = "";
-  files.forEach((f, idx) => {
-    const row = document.createElement("div");
-    row.className = "file-row";
-    const img = document.createElement("img");
-    img.className = "thumb";
-    img.src = `https://drive.google.com/thumbnail?id=${f.id}`;
-    const chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.dataset.id = f.id;
-    chk.onchange = () => {
-      if (chk.checked) { seleccionados.push(f); } 
-      else { seleccionados = seleccionados.filter(x => x.id !== f.id); }
+/* === Renderizar lista === */
+function renderFiles(){
+  const cont = document.getElementById("filesList");
+  cont.innerHTML = "";
+  files.forEach((f,i)=>{
+    const isSel = selected.has(f.id);
+    // aseguramos thumbnail
+    const thumb = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s200") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
+
+    const div = document.createElement("div");
+    div.className = "file-card"+(isSel?" selected":"");
+    div.innerHTML = `
+      <div class="file-check">${isSel?"✓":""}</div>
+      <img src="${thumb}" alt="${f.name}">
+      <div class="file-num">#${i+1}</div>
+    `;
+    div.onclick = ()=>{
+      if(selected.has(f.id)) selected.delete(f.id);
+      else selected.add(f.id);
+      renderFiles();
     };
-    const label = document.createElement("span");
-    label.textContent = `${idx+1}. ${f.name}`;
-    row.appendChild(chk); row.appendChild(img); row.appendChild(label);
-    list.appendChild(row);
+    cont.appendChild(div);
   });
 }
 
-function seleccionarTodo() {
-  seleccionados = [...files];
-  document.querySelectorAll("#filesList input[type=checkbox]").forEach(chk => chk.checked = true);
-}
-
-/* ====== SECCIÓN 2: COLLAGE ====== */
-function generarCollage() {
-  if (seleccionados.length === 0) { alert("Selecciona fotos primero"); return; }
+/* === Botones === */
+document.getElementById("btnConnect").onclick = listDriveFiles;
+document.getElementById("btnRefresh").onclick = listDriveFiles;
+document.getElementById("btnSelectAll").onclick = ()=>{
+  files.forEach(f=>selected.add(f.id));
+  renderFiles();
+};
+document.getElementById("btnClearAll").onclick = ()=>{
+  selected.clear();
+  renderFiles();
+};
+</script>
+<script>
+/* === Collage === */
+function generateCollage(){
   const canvas = document.getElementById("collageCanvas");
   const ctx = canvas.getContext("2d");
-  const cols = 3;
-  const size = 200;
-  const rows = Math.ceil(seleccionados.length / cols);
-  canvas.width = cols * size;
-  canvas.height = rows * size;
-  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  seleccionados.forEach((f, idx) => {
+  const selFiles = files.filter(f => selected.has(f.id));
+  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
+
+  const cols = 3; // columnas
+  const w = 300;
+  const h = 220;
+  const rows = Math.ceil(selFiles.length/cols);
+
+  canvas.width = cols*w;
+  canvas.height = rows*h;
+
+  ctx.fillStyle="#fff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.font="20px Arial";
+  ctx.fillStyle="#000";
+  ctx.textAlign="left";
+
+  selFiles.forEach((f,idx)=>{
     const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      const x = (idx % cols) * size;
-      const y = Math.floor(idx / cols) * size;
-      ctx.drawImage(img, x, y, size, size);
-      ctx.fillStyle = "red";
-      ctx.font = "20px Arial";
-      ctx.fillText(idx+1, x+10, y+25);
-      document.getElementById("collagePreview").src = canvas.toDataURL("image/png");
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      const row = Math.floor(idx/cols);
+      const col = idx%cols;
+      const x = col*w;
+      const y = row*h;
+      ctx.drawImage(img,x,y,w,h);
+      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillRect(x,y,40,28);
+      ctx.fillStyle="#fff";
+      ctx.fillText(`#${idx+1}`,x+8,y+20);
     };
-    img.src = `https://drive.google.com/uc?id=${f.id}`;
+    img.src = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s400") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
   });
+
+  // mostrar preview con retraso
+  setTimeout(()=>{
+    const dataUrl = canvas.toDataURL("image/png");
+    const preview = document.getElementById("collagePreview");
+    preview.src = dataUrl;
+    preview.style.display="block";
+  },800);
 }
 
-function descargarCollage() {
+function downloadCollage(){
   const canvas = document.getElementById("collageCanvas");
   const link = document.createElement("a");
-  link.download = "collage.png";
+  link.download="collage.png";
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
 
-function abrirCollageModal() {
-  document.getElementById("modalCollageImg").src = document.getElementById("collagePreview").src;
-  document.getElementById("modalCollage").style.display = "flex";
-}
-function cerrarCollageModal() {
-  document.getElementById("modalCollage").style.display = "none";
-}
+// Evento para agrandar en modal
+document.getElementById("collagePreview").onclick = ()=>{
+  const modal = document.getElementById("modalCollage");
+  const modalImg = document.getElementById("modalImg");
+  modal.style.display="flex";
+  modalImg.src = document.getElementById("collagePreview").src;
+};
+document.getElementById("modalCollage").onclick = ()=>{
+  document.getElementById("modalCollage").style.display="none";
+};
 
-/* ====== SECCIÓN 3: UBICACIONES ====== */
-let ubicaciones = [];
+document.getElementById("btnGenerateCollage").onclick = generateCollage;
+document.getElementById("btnDownloadCollage").onclick = downloadCollage;
 
-function activarUbicacion() {
-  const numeroFoto = document.getElementById("fotoNumero").value;
-  if (!numeroFoto) { alert("Por favor ingresa el número de foto"); return; }
-  if (!navigator.geolocation) { alert("Tu navegador no soporta geolocalización"); return; }
+ let ubicaciones = [];
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    const fechaHora = new Date().toLocaleString();
-    ubicaciones.push({ numero: parseInt(numeroFoto), lat, lng, fecha: fechaHora });
-    mostrarUbicaciones();
-  }, err => alert("Error al obtener ubicación: " + err.message));
-}
+  function activarUbicacion() {
+    const numeroFoto = document.getElementById("fotoNumero").value;
+    if (!numeroFoto) {
+      alert("Por favor, ingresa el número de foto");
+      return;
+    }
 
-function mostrarUbicaciones() {
-  const cont = document.getElementById("ubicacionesList");
-  cont.innerHTML = "";
-  ubicaciones.forEach((u, idx) => {
-    const card = document.createElement("div");
-    card.style.display = "flex"; card.style.alignItems = "center";
-    card.style.border = "1px solid #ccc"; card.style.padding = "8px";
-    card.style.borderRadius = "6px"; card.style.background = "#fff"; card.style.gap = "12px";
+    if (!navigator.geolocation) {
+      alert("Geolocalización no soportada en este navegador.");
+      return;
+    }
 
-    const mapDiv = document.createElement("div");
-    mapDiv.style.width = "200px"; mapDiv.style.height = "150px";
-    mapDiv.style.cursor = "pointer"; mapDiv.id = "map_" + idx;
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
 
-    const infoDiv = document.createElement("div");
-    infoDiv.innerHTML = `
-      <strong>Propuesta ${u.numero}</strong><br>
-      📍 Lat: ${u.lat.toFixed(5)}, Lng: ${u.lng.toFixed(5)}<br>
-      ⏰ ${u.fecha}
-    `;
+      // URL temporal de preview de Google Maps
+      const previewUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=200x200&markers=color:red|${lat},${lng}&key=AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4`;
 
-    card.appendChild(mapDiv); card.appendChild(infoDiv); cont.appendChild(card);
+      const ubicacion = {
+        numero: numeroFoto,
+        lat: lat,
+        lng: lng,
+        preview: previewUrl
+      };
 
-    const map = L.map(mapDiv.id).setView([u.lat, u.lng], 18);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri'
-    }).addTo(map);
-    L.marker([u.lat, u.lng]).addTo(map);
+      ubicaciones.push(ubicacion);
+      mostrarUbicaciones();
+    }, err => {
+      alert("Error obteniendo ubicación: " + err.message);
+    });
+  }
 
-    mapDiv.onclick = () => abrirModal(u.lat, u.lng);
-  });
-}
+  function mostrarUbicaciones() {
+    const cont = document.getElementById("ubicacionesList");
+    cont.innerHTML = "";
+    ubicaciones.forEach((u, idx) => {
+      const div = document.createElement("div");
+      div.className = "ubicacion-item";
+      div.innerHTML = `
+        <strong>📌 Foto #${u.numero}</strong><br>
+        Lat: ${u.lat.toFixed(5)}, Lng: ${u.lng.toFixed(5)}<br>
+        <img src="${u.preview}" onclick="abrirModal('${u.preview}')">
+      `;
+      cont.appendChild(div);
+    });
+  }
 
-function abrirModal(lat, lng) {
-  document.getElementById("modalUbicacion").style.display = "flex";
-  setTimeout(() => {
-    const modalMap = L.map("modalMap").setView([lat, lng], 18);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri'
-    }).addTo(modalMap);
-    L.marker([lat, lng]).addTo(modalMap);
-  }, 200);
-}
-function cerrarModal() {
-  document.getElementById("modalUbicacion").style.display = "none";
-  document.getElementById("modalMap").innerHTML = "";
-}
+  function abrirModal(imgUrl) {
+    document.getElementById("modalImg").src = imgUrl;
+    document.getElementById("modalUbicacion").style.display = "flex";
+  }
+
+  function cerrarModal() {
+    document.getElementById("modalUbicacion").style.display = "none";
+  }
+
+  // cerrar modal al hacer clic fuera
+  window.onclick = function(event) {
+    const modal = document.getElementById("modalUbicacion");
+    if (event.target === modal) {
+      cerrarModal();
+    }
+  }
+  
 </script>
+
 </body>
 </html>
