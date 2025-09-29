@@ -263,13 +263,36 @@ function renderLocations(){
     div.style.borderRadius="6px";
     div.style.background="#f9f9f9";
 
-    // Miniatura con imagen estática de OSM
-    const img = document.createElement("img");
-    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=satellite&markers=${loc.lat},${loc.lng},red-pushpin`;
-    img.style.cursor="pointer";
-    img.style.border="1px solid #999";
-    img.style.borderRadius="4px";
-    img.onclick=()=>openMap(loc.lat,loc.lng);
+ // Mini-mapa satelital interactivo (sin controles)
+const thumbDiv = document.createElement("div");
+thumbDiv.style.width = "150px";
+thumbDiv.style.height = "100px";
+thumbDiv.style.border = "1px solid #999";
+thumbDiv.style.borderRadius = "4px";
+thumbDiv.style.cursor = "pointer";
+
+div.appendChild(thumbDiv);
+
+const thumbMap = L.map(thumbDiv, {
+  attributionControl: false,
+  zoomControl: false,
+  dragging: false,
+  scrollWheelZoom: false,
+  doubleClickZoom: false,
+  boxZoom: false,
+  keyboard: false,
+  tap: false
+}).setView([loc.lat, loc.lng], 16);
+
+L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 19 }
+).addTo(thumbMap);
+
+L.marker([loc.lat, loc.lng]).addTo(thumbMap);
+
+thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
+
 
     // Detalles
     const details = document.createElement("div");
@@ -340,9 +363,10 @@ function openMap(lat,lng){
   setTimeout(()=>{
     if(currentMap){ currentMap.remove(); }
     currentMap = L.map("leafletMap").setView([lat,lng],16);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap"
-    }).addTo(currentMap);
+  L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 19, attribution: "Tiles © Esri" }
+).addTo(currentMap);
     L.marker([lat,lng]).addTo(currentMap);
   },200);
 }
