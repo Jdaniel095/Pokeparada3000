@@ -1,376 +1,100 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Collage + Wayfarer Helper - Con Sheets</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wayfarer Helper - Collage</title>
 
 <!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-  body{font-family:system-ui,Segoe UI,Arial;max-width:1100px;margin:10px auto;padding:14px;background:#f7f9fb;color:#333;}
-  h1{margin:4px 0 12px;text-align:center;color:#0b84ff}
-  .controls-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
-  .files-wrap{max-height:240px;overflow:auto;border:1px solid #eee;padding:6px;border-radius:6px;background:#fff}
-  .file-row{display:flex;gap:8px;align-items:center;padding:6px;border-bottom:1px solid #eee}
-  .thumb{width:120px;height:90px;object-fit:cover;border-radius:4px}
-  .grid-collage{border:1px dashed #bbb;padding:8px;display:inline-block;background:white;border-radius:6px}
-  #collagePreview{margin-top:8px;max-width:500px;cursor:pointer;border:1px solid #ccc;display:block;border-radius:6px}
-  .final-card{display:flex;gap:12px;align-items:flex-start;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;background:#fff}
-  .final-thumb{width:220px;height:150px;object-fit:cover;border-radius:6px}
-  .vote-btn{padding:6px 8px;margin-right:6px;border-radius:6px;border:1px solid #ccc;cursor:pointer}
-  .vote-accepted{background:#c8f7c5}
-  .vote-rejected{background:#f7c5c5}
-  .vote-pending{background:#f7f3c5}
-  .small-btn{padding:6px 8px;border-radius:6px}
+  body{font-family:system-ui,Segoe UI,Arial;margin:0;padding:0;background:#f4f6f9;color:#333;}
+  header{background:#0b84ff;color:#fff;padding:14px;text-align:center;font-size:20px;font-weight:bold}
+  section{margin:20px auto;max-width:1100px;padding:14px;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+  h2{margin:0 0 12px;color:#0b84ff;font-size:18px}
+  .controls-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  button{padding:8px 14px;border-radius:6px;border:0;cursor:pointer;font-size:14px;transition:0.2s}
+  button.primary{background:#0b84ff;color:#fff}
+  button.primary:hover{background:#006ad1}
+  button.secondary{background:#eee}
+  button.secondary:hover{background:#ddd}
+  .files-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;max-height:480px;overflow-y:auto;padding:6px}
+  .file-card{position:relative;border:1px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa;cursor:pointer;transition:0.2s}
+  .file-card:hover{box-shadow:0 2px 6px rgba(0,0,0,0.2)}
+  .file-card img{width:100%;height:120px;object-fit:cover;display:block}
+  .file-check{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid #0b84ff;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0b84ff}
+  .file-card.selected .file-check{background:#0b84ff;color:#fff}
+  .file-num{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 6px;border-radius:6px;font-size:12px}
 </style>
 </head>
 <body>
-  <h1>Collage + Wayfarer Helper (con Google Sheets)</h1>
+  <header>📸 Wayfarer Helper - Collage</header>
 
+  <!-- 1. Conectar y listar fotos -->
   <section>
-    <h2>Configuración (reemplaza)</h2>
-    <p>API_KEY y FOLDER_ID para listar Drive (si ya lo tienes). También pega tu <b>API_URL</b> (Apps Script) en la variable abajo.</p>
-  </section>
-
-  <section>
-    <h2>1) Conectar y listar Drive</h2>
+    <h2>1) Conectar y listar fotos (Drive)</h2>
     <div class="controls-row">
-      <button id="btnConnect">Conectar y listar fotos</button>
-      <button id="btnRefresh">Refrescar</button>
+      <button id="btnConnect" class="primary">Conectar y listar</button>
+      <button id="btnRefresh" class="secondary">Refrescar</button>
+      <button id="btnSelectAll" class="secondary">Seleccionar todo</button>
+      <button id="btnClearAll" class="secondary">Limpiar selección</button>
     </div>
-    <div class="files-wrap" id="filesList"></div>
-  </section>
-
-  <section>
-    <h2>2) Seleccionar y generar collage</h2>
-    <div class="controls-row">
-      <button id="btnGenerate" class="small-btn">Generar collage</button>
-      <button id="btnDownload" class="small-btn">Descargar collage</button>
-    </div>
-    <div class="grid-collage">
-      <canvas id="collageCanvas" style="display:none"></canvas>
-      <img id="collagePreview" src="" />
-    </div>
-  </section>
-
-  <section>
-    <h2>3) Guardar ubicaciones (móvil)</h2>
-    <div class="controls-row">
-      <button id="btnSaveLocation" class="small-btn">Guardar ubicación</button>
-    </div>
-    <div id="locationsList"></div>
-  </section>
-
-  <section>
-    <h2>4) Pegar propuestas (formato exacto)</h2>
-    <textarea id="proposalsInput" placeholder="Foto 1\nTítulo: ...\nRevisores: ...\nEntrenadores: ...\nCategoría: ...\n\nFoto 2\n..."></textarea>
-    <div class="controls-row">
-      <button id="btnParse" class="small-btn">Parsear propuestas</button>
-      <button id="btnClearProposals" class="small-btn">Limpiar</button>
-    </div>
-  </section>
-
-  <section>
-    <h2>5) Resultado final y guardado</h2>
-    <div class="controls-row">
-      <button id="btnSaveToSheets" class="small-btn">Guardar set en Google Sheets</button>
-    </div>
-    <div id="finalList"></div>
-  </section>
-
-  <section>
-    <h2>Propuestas guardadas (desde Sheets)</h2>
-    <div id="savedList"></div>
+    <div id="filesList" class="files-wrap"></div>
   </section>
 
 <script>
-/* ====== CONFIG - reemplaza tu API_URL (Apps Script), API_KEY y FOLDER_ID ====== */
-const API_URL = "AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT"; // Ej: https://script.google.com/macros/s/AKfyc.../exec
+/* ===== CONFIG ===== */
 const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
 const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
-/* ======================================================================== */
+const SHEET_URL = "https://script.google.com/macros/s/AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT/exec";
 
-let driveFiles = [];        // {id,name,thumb}
-let selectedIds = [];       // array of drive file ids in order
-let lastCollageDataUrl = ""; 
-let locations = {};         // map proposalNum -> {lat,lng}
-let proposals = {};         // map proposalNum -> {title,revisores,entrenadores,categoria}
+let files = [];
+let selected = new Set();
 
-/* ---------------- Drive listar ---------------- */
-function driveThumbUrl(id,size=200){ return `https://drive.google.com/thumbnail?id=${id}&sz=w${size}`; }
-function driveDirectUrl(id){ return `https://drive.google.com/uc?export=view&id=${id}`; }
-
-async function listarDrive(){
-  const q = encodeURIComponent(`'${FOLDER_ID}' in parents and mimeType contains 'image/' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${API_KEY}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,thumbnailLink)&pageSize=500`;
-  try{
-    const res = await fetch(url);
-    const json = await res.json();
-    if(json.error){ alert("Error Drive API: "+(json.error.message||JSON.stringify(json.error))); return; }
-    driveFiles = (json.files||[]).filter(f=>/jpeg|jpg|png|gif/i.test(f.mimeType)).map(f=>({id:f.id,name:f.name,thumb:f.thumbnailLink||driveThumbUrl(f.id)}));
-    renderFilesList();
-  }catch(err){ alert("Error al listar Drive: "+err); }
+/* === 1. Listar archivos de Drive === */
+async function listDriveFiles(){
+  const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink)`;
+  const res = await fetch(url);
+  const data = await res.json();
+  files = data.files || [];
+  renderFiles();
 }
 
-function renderFilesList(){
-  const wrap = document.getElementById('filesList'); wrap.innerHTML="";
-  driveFiles.forEach(f=>{
-    const row = document.createElement('div'); row.className='file-row';
-    const cb=document.createElement('input'); cb.type='checkbox'; cb.style.marginRight='8px';
-    cb.onchange = (e)=>{
-      if(e.target.checked) selectedIds.push(f.id);
-      else selectedIds = selectedIds.filter(x=>x!==f.id);
-      renderSelectedCount();
+/* === Renderizar lista === */
+function renderFiles(){
+  const cont = document.getElementById("filesList");
+  cont.innerHTML = "";
+  files.forEach((f,i)=>{
+    const isSel = selected.has(f.id);
+    const div = document.createElement("div");
+    div.className = "file-card"+(isSel?" selected":"");
+    div.innerHTML = `
+      <div class="file-check">${isSel?"✓":""}</div>
+      <img src="https://drive.google.com/uc?export=view&id=${f.id}" alt="${f.name}">
+      <div class="file-num">#${i+1}</div>
+    `;
+    div.onclick = ()=>{
+      if(selected.has(f.id)) selected.delete(f.id);
+      else selected.add(f.id);
+      renderFiles();
     };
-    const img = document.createElement('img'); img.src=f.thumb; img.className='thumb';
-    const span = document.createElement('div'); span.style.flex='1'; span.innerText = f.name;
-    row.appendChild(cb); row.appendChild(img); row.appendChild(span);
-    wrap.appendChild(row);
+    cont.appendChild(div);
   });
 }
 
-function renderSelectedCount(){ /* opcional */ }
-
-/* --------------- Generar collage --------------- */
-document.getElementById('btnGenerate').addEventListener('click', async ()=>{
-  if(selectedIds.length===0){ alert("Selecciona imágenes primero."); return; }
-  const canvas = document.getElementById('collageCanvas');
-  const ctx = canvas.getContext('2d');
-  const cols = 3, w=300, h=200;
-  const rows = Math.ceil(selectedIds.length/cols);
-  canvas.width = cols * w; canvas.height = rows * h;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // cargar todas en serie para mantener orden
-  for(let i=0;i<selectedIds.length;i++){
-    const id = selectedIds[i];
-    await new Promise((res,rej)=>{
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = ()=>{
-        const col = i%cols, row=Math.floor(i/cols);
-        ctx.drawImage(img, col*w, row*h, w, h);
-        ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(col*w+6,row*h+6,36,28);
-        ctx.fillStyle='white'; ctx.font='18px sans-serif'; ctx.fillText((i+1).toString(), col*w+16,row*h+26);
-        res();
-      };
-      img.onerror = ()=>{ console.warn("img error", id); res(); };
-      img.src = driveDirectUrl(id);
-    });
-  }
-  lastCollageDataUrl = canvas.toDataURL('image/png');
-  document.getElementById('collagePreview').src = lastCollageDataUrl;
-  alert("Collage generado. Haz clic en la imagen para ampliarla.");
-});
-
-document.getElementById('collagePreview').addEventListener('click', ()=> {
-  const img = document.getElementById('collagePreview');
-  img.style.maxWidth = img.style.maxWidth === '1000px' ? '500px' : '1000px';
-});
-
-/* --------------- Descargar collage --------------- */
-document.getElementById('btnDownload').addEventListener('click', ()=>{
-  if(!lastCollageDataUrl){ alert("Genera el collage primero."); return; }
-  const a=document.createElement('a'); a.href=lastCollageDataUrl; a.download='collage.png'; a.click();
-});
-
-/* --------------- Ubicaciones (móvil) --------------- */
-document.getElementById('btnSaveLocation').addEventListener('click', ()=>{
-  const numStr = prompt("Asigna número (ej. 1) para asociar esta ubicación a la foto del collage:");
-  if(!numStr) return;
-  const num = parseInt(numStr);
-  if(Number.isNaN(num)){ alert("Número inválido"); return; }
-  if(!navigator.geolocation){ alert("Geolocalización no disponible"); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    locations[String(num)] = {lat: pos.coords.latitude, lng: pos.coords.longitude};
-    renderLocations();
-  }, err=> alert("Error geolocalización: "+err.message), {enableHighAccuracy:true, timeout:10000});
-});
-
-function renderLocations(){
-  const wrap = document.getElementById('locationsList'); wrap.innerHTML='';
-  const keys = Object.keys(locations).sort((a,b)=>a-b);
-  if(keys.length===0){ wrap.innerHTML='<small>No hay ubicaciones guardadas.</small>'; return; }
-  keys.forEach(k=>{
-    const v = locations[k];
-    const div = document.createElement('div');
-    div.innerHTML = `Foto ${k}: ${v.lat.toFixed(5)}, ${v.lng.toFixed(5)} 
-      <button onclick="editLoc('${k}')">Editar</button>
-      <button onclick="delLoc('${k}')">Eliminar</button>`;
-    wrap.appendChild(div);
-  });
-}
-window.editLoc = function(k){
-  const lat = parseFloat(prompt("Lat:", locations[k].lat));
-  const lng = parseFloat(prompt("Lng:", locations[k].lng));
-  if(!isNaN(lat) && !isNaN(lng)){ locations[k] = {lat,lng}; renderLocations(); }
+/* === Botones === */
+document.getElementById("btnConnect").onclick = listDriveFiles;
+document.getElementById("btnRefresh").onclick = listDriveFiles;
+document.getElementById("btnSelectAll").onclick = ()=>{
+  files.forEach(f=>selected.add(f.id));
+  renderFiles();
 };
-window.delLoc = function(k){ delete locations[k]; renderLocations(); };
-
-/* ----------------- Parsear propuestas ----------------- */
-document.getElementById('btnParse').addEventListener('click', ()=>{
-  const raw = document.getElementById('proposalsInput').value.trim();
-  if(!raw){ alert("Pega propuestas"); return; }
-  // split por bloques: "Foto <n>"
-  const parts = raw.split(/\r?\n(?=Foto\s*\d+)/i);
-  proposals = {};
-  parts.forEach(block=>{
-    const lines = block.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    if(lines.length===0) return;
-    const m = lines[0].match(/Foto\s*([0-9]+)/i);
-    if(!m) return;
-    const num = m[1];
-    const obj = {title:'', revisores:'', entrenadores:'', categoria:''};
-    lines.slice(1).forEach(ln=>{
-      const k = ln.match(/^([^:]+):\s*(.*)$/);
-      if(k){
-        const key = k[1].toLowerCase();
-        const val = k[2];
-        if(key.includes('título')||key.includes('titulo')||key.includes('title')) obj.title = val;
-        else if(key.includes('revisor')) obj.revisores = val;
-        else if(key.includes('entrenador')) obj.entrenadores = val;
-        else if(key.includes('categoria')||key.includes('categoría')) obj.categoria = val;
-      }
-    });
-    proposals[num] = obj;
-  });
-  alert("Propuestas parseadas. Revisa en Resultado final.");
-  renderFinal();
-});
-
-/* -------------- Render Resultado local -------------- */
-function renderFinal(){
-  const wrap = document.getElementById('finalList'); wrap.innerHTML='';
-  const keys = Object.keys(proposals).sort((a,b)=>a-b);
-  if(keys.length===0){ wrap.innerHTML='<small>No hay propuestas.</small>'; return; }
-  keys.forEach(k=>{
-    const p = proposals[k];
-    const div = document.createElement('div'); div.className='final-card';
-    const photoId = selectedIds[Number(k)-1] || "";
-    div.innerHTML = `<div>
-      <img class="final-thumb" src="${photoId?driveDirectUrl(photoId):''}"/>
-    </div>
-    <div>
-      <b>Foto ${k}</b><br/>
-      <b>Título:</b> ${p.title}<br/>
-      <b>Revisores:</b> ${p.revisores}<br/>
-      <b>Entrenadores:</b> ${p.entrenadores}<br/>
-      <b>Categoría:</b> ${p.categoria}<br/>
-      <b>Ubicación:</b> ${locations[k] ? `${locations[k].lat.toFixed(5)}, ${locations[k].lng.toFixed(5)}` : 'Sin ubicación'}
-    </div>`;
-    wrap.appendChild(div);
-  });
-}
-
-/* --------------- Guardar conjunto en Sheets --------------- */
-document.getElementById('btnSaveToSheets').addEventListener('click', async ()=>{
-  if(!lastCollageDataUrl){ if(!confirm("Aún no generaste collage. Guardar solo propuestas?")) return; }
-  // construir items: for each proposal number, attach photoId, text fields and location
-  const items = {};
-  Object.keys(proposals).forEach(k=>{
-    const p = proposals[k];
-    items[k] = {
-      photoId: selectedIds[Number(k)-1] || "",
-      title: p.title,
-      revisores: p.revisores,
-      entrenadores: p.entrenadores,
-      categoria: p.categoria,
-      lat: locations[k] ? locations[k].lat : "",
-      lng: locations[k] ? locations[k].lng : "",
-      vote: "Pendiente"
-    };
-  });
-  const setId = (new Date()).toISOString();
-  const payload = { action: "save_set", setId: setId, collage: lastCollageDataUrl, items: items };
-  try{
-    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-    const txt = await res.text();
-    alert("Guardado en Google Sheets ✅");
-    // luego refrescar listados guardados
-    loadSavedFromSheets();
-  }catch(err){ alert("Error al guardar en Sheets: "+err); }
-});
-
-/* --------------- Cargar y mostrar guardados (desde Sheets) --------------- */
-async function loadSavedFromSheets(){
-  try{
-    const res = await fetch(API_URL);
-    const json = await res.json();
-    renderSaved(json||[]);
-  }catch(err){ console.warn(err); }
-}
-
-function renderSaved(arr){
-  const box = document.getElementById('savedList'); box.innerHTML='';
-  if(!arr || arr.length===0){ box.innerHTML = '<small>No hay sets guardados en Sheets.</small>'; return; }
-  arr.forEach(set=>{
-    const container = document.createElement('div'); container.className='final-card';
-    const left = document.createElement('div');
-    left.innerHTML = `<div><b>Set ${set.setId}</b><br/><small>${set.fecha}</small><br/>
-      <img src="${set.collage}" style="max-width:300px;border-radius:6px;border:1px solid #ccc;margin-top:6px"/></div>`;
-    const right = document.createElement('div'); right.style.flex='1';
-    set.items.sort((a,b)=>Number(a.proposalNum)-Number(b.proposalNum)).forEach(item=>{
-      const itDiv = document.createElement('div'); itDiv.style.marginBottom='8px'; itDiv.style.padding='6px'; itDiv.style.border='1px solid #eee';
-      itDiv.innerHTML = `<b>Foto ${item.proposalNum}</b><br/>
-        <b>Título:</b> ${item.title}<br/>
-        <b>Revisores:</b> ${item.revisores}<br/>
-        <b>Entrenadores:</b> ${item.entrenadores}<br/>
-        <b>Categoria:</b> ${item.categoria}<br/>
-        <div id="map-${set.setId}-${item.proposalNum}" style="width:260px;height:140px;margin-top:6px"></div>
-        <div style="margin-top:6px">
-          <button class="vote-btn vote-pending" onclick="updateVote(${item.rowNumber},'Pendiente', '${set.setId}', '${item.proposalNum}')">Pendiente</button>
-          <button class="vote-btn vote-accepted" onclick="updateVote(${item.rowNumber},'Aceptado', '${set.setId}', '${item.proposalNum}')">Aceptado</button>
-          <button class="vote-btn vote-rejected" onclick="updateVote(${item.rowNumber},'Rechazado', '${set.setId}', '${item.proposalNum}')">Rechazado</button>
-          <span style="margin-left:8px">Estado: <b id="state-${item.rowNumber}">${item.vote}</b></span>
-        </div>`;
-      right.appendChild(itDiv);
-      // init map if location exists
-      if(item.lat !== "" && item.lng !== ""){
-        setTimeout(()=>{
-          try{
-            const mapDivId = `map-${set.setId}-${item.proposalNum}`;
-            const map = L.map(mapDivId, {zoomControl:false, attributionControl:false}).setView([Number(item.lat), Number(item.lng)], 16);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([Number(item.lat), Number(item.lng)]).addTo(map);
-          }catch(e){ console.warn("map err", e); }
-        },100);
-      } else {
-        // remove empty map container
-        const md = document.getElementById(`map-${set.setId}-${item.proposalNum}`);
-        if(md) md.innerHTML = '<small>No hay ubicación</small>';
-      }
-    });
-    container.appendChild(left); container.appendChild(right);
-    box.appendChild(container);
-  });
-}
-
-/* --------------- Actualizar voto --------------- */
-async function updateVote(rowNumber, vote, setId, proposalNum){
-  try{
-    // POST update_vote with row (preferred)
-    const payload = { action: "update_vote", row: rowNumber, vote: vote, setId: setId, proposalNum: proposalNum };
-    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-    const json = await res.json();
-    if(json.ok){
-      // actualizar texto de estado en UI
-      const el = document.getElementById(`state-${rowNumber}`);
-      if(el) el.innerText = vote;
-      else loadSavedFromSheets();
-    } else {
-      alert("No se pudo actualizar voto: "+(json.error||JSON.stringify(json)));
-    }
-  }catch(err){ alert("Error updateVote: "+err); }
-}
-
-/* --------------- Init --------------- */
-document.getElementById('btnConnect').addEventListener('click', ()=>listarDrive());
-document.getElementById('btnRefresh').addEventListener('click', ()=>listarDrive());
-document.getElementById('btnClearProposals').addEventListener('click', ()=>{ proposals={}; renderFinal(); });
-window.addEventListener('load', ()=>{ loadSavedFromSheets(); });
+document.getElementById("btnClearAll").onclick = ()=>{
+  selected.clear();
+  renderFiles();
+};
 </script>
 </body>
 </html>
