@@ -68,11 +68,16 @@ function renderFiles(){
   cont.innerHTML = "";
   files.forEach((f,i)=>{
     const isSel = selected.has(f.id);
+    // aseguramos thumbnail
+    const thumb = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s200") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
+
     const div = document.createElement("div");
     div.className = "file-card"+(isSel?" selected":"");
     div.innerHTML = `
       <div class="file-check">${isSel?"✓":""}</div>
-      <img src="https://drive.google.com/uc?export=view&id=${f.id}" alt="${f.name}">
+      <img src="${thumb}" alt="${f.name}">
       <div class="file-num">#${i+1}</div>
     `;
     div.onclick = ()=>{
