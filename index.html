@@ -253,32 +253,31 @@ function renderLocations(){
     const div = document.createElement("div");
     div.style.display="flex";
     div.style.alignItems="center";
+    div.style.justifyContent="space-between";
     div.style.gap="12px";
     div.style.border="1px solid #ccc";
     div.style.padding="8px";
     div.style.borderRadius="6px";
     div.style.background="#f9f9f9";
 
-    // Miniatura con OSM (iframe pequeño)
-    const iframe = document.createElement("iframe");
-    iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${loc.lng-0.001},${loc.lat-0.001},${loc.lng+0.001},${loc.lat+0.001}&layer=sat&marker=${loc.lat},${loc.lng}`;
-    iframe.width = "150";
-    iframe.height = "100";
-    iframe.style.border="1px solid #999";
-    iframe.style.borderRadius="4px";
-    iframe.style.cursor="pointer";
-    iframe.onclick=()=>openMap(loc.lat,loc.lng);
+    // Miniatura con imagen estática de OSM (modo satélite de esri)
+    const img = document.createElement("img");
+    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=satellite&markers=${loc.lat},${loc.lng},red-pushpin`;
+    img.style.cursor="pointer";
+    img.style.border="1px solid #999";
+    img.style.borderRadius="4px";
+    img.onclick=()=>openMap(loc.lat,loc.lng);
 
     // Detalles
     const details = document.createElement("div");
     details.innerHTML = `<strong>Propuesta #${loc.order}</strong><br>
                          📍 ${loc.lat}, ${loc.lng}`;
 
-    // Botones acciones
+    // Botones acciones en horizontal
     const controls = document.createElement("div");
     controls.style.display="flex";
-    controls.style.flexDirection="column";
-    controls.style.gap="4px";
+    controls.style.flexDirection="row";
+    controls.style.gap="6px";
 
     const btnUp = document.createElement("button");
     btnUp.textContent="⬆️";
@@ -310,36 +309,13 @@ function renderLocations(){
     controls.appendChild(btnEdit);
     controls.appendChild(btnDelete);
 
-    div.appendChild(iframe);
+    div.appendChild(img);
     div.appendChild(details);
     div.appendChild(controls);
 
     list.appendChild(div);
   });
 }
-
-function moveLocation(id,dir){
-  const idx = locations.findIndex(l=>l.id===id);
-  if(idx<0) return;
-  const newOrder = locations[idx].order+dir;
-  if(newOrder<1) return;
-  locations[idx].order=newOrder;
-  renderLocations();
-}
-
-function openMap(lat,lng){
-  const modal = document.getElementById("modalMap");
-  const iframe = document.getElementById("mapIframe");
-  iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.01},${lat-0.01},${lng+0.01},${lat+0.01}&layer=sat&marker=${lat},${lng}`;
-  modal.style.display="flex";
-}
-
-function closeMap(){
-  document.getElementById("modalMap").style.display="none";
-  document.getElementById("mapIframe").src="";
-}
-
-document.getElementById("btnSaveLocation").onclick = saveLocation;
 </script>
 
   
