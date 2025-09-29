@@ -69,23 +69,22 @@
 </div>
 
 <!-- ========================= -->
-<!-- 3) UBICACIÓN -->
+<!-- 3) Guardar Ubicación -->
 <!-- ========================= -->
 <h2>3) Guardar Ubicación</h2>
 
-<div class="controls-row">
+<div>
   <label>Número de foto:</label>
-  <input type="number" id="fotoNumero" min="1" placeholder="Ej: 5" style="width:80px; padding:5px;">
-  
+  <input type="number" id="fotoNumero" min="1" placeholder="Ej: 5">
   <button onclick="activarUbicacion()">📍 Usar ubicación actual</button>
 </div>
 
 <div id="ubicacionesList"></div>
 
-<!-- Modal para ver foto grande -->
-<div id="modalUbicacion" class="modal">
-  <span class="close" onclick="cerrarModal()">&times;</span>
-  <img id="modalImg">
+<!-- Modal para ver el mapa en grande -->
+<div id="modalUbicacion" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:1000;">
+  <span onclick="cerrarModal()" style="position:absolute; top:15px; right:25px; font-size:30px; color:white; cursor:pointer;">&times;</span>
+  <img id="modalImg" style="max-width:90%; max-height:90%; border:2px solid #fff; border-radius:8px;">
 </div>
   
 <script>
@@ -218,17 +217,17 @@ document.getElementById("modalCollage").onclick = ()=>{
 document.getElementById("btnGenerateCollage").onclick = generateCollage;
 document.getElementById("btnDownloadCollage").onclick = downloadCollage;
 
- let ubicaciones = [];
+let ubicaciones = [];
 
   function activarUbicacion() {
     const numeroFoto = document.getElementById("fotoNumero").value;
     if (!numeroFoto) {
-      alert("Por favor, ingresa el número de foto");
+      alert("Por favor ingresa el número de foto");
       return;
     }
 
     if (!navigator.geolocation) {
-      alert("Geolocalización no soportada en este navegador.");
+      alert("Tu navegador no soporta geolocalización");
       return;
     }
 
@@ -236,20 +235,24 @@ document.getElementById("btnDownloadCollage").onclick = downloadCollage;
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
 
-      // URL temporal de preview de Google Maps
-      const previewUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=200x200&markers=color:red|${lat},${lng}&key=AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4`;
+      // Preview de mapa estático
+      const previewUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=17&size=250x200&markers=color:red|${lat},${lng}&key=AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4`;
+
+      // Fecha y hora actual
+      const fechaHora = new Date().toLocaleString();
 
       const ubicacion = {
         numero: numeroFoto,
         lat: lat,
         lng: lng,
-        preview: previewUrl
+        preview: previewUrl,
+        fecha: fechaHora
       };
 
       ubicaciones.push(ubicacion);
       mostrarUbicaciones();
     }, err => {
-      alert("Error obteniendo ubicación: " + err.message);
+      alert("Error al obtener ubicación: " + err.message);
     });
   }
 
@@ -258,11 +261,21 @@ document.getElementById("btnDownloadCollage").onclick = downloadCollage;
     cont.innerHTML = "";
     ubicaciones.forEach((u, idx) => {
       const div = document.createElement("div");
-      div.className = "ubicacion-item";
+      div.style.display = "flex";
+      div.style.alignItems = "center";
+      div.style.margin = "10px 0";
+      div.style.border = "1px solid #ccc";
+      div.style.padding = "8px";
+      div.style.borderRadius = "6px";
+      div.style.background = "#fff";
+
       div.innerHTML = `
-        <strong>📌 Foto #${u.numero}</strong><br>
-        Lat: ${u.lat.toFixed(5)}, Lng: ${u.lng.toFixed(5)}<br>
-        <img src="${u.preview}" onclick="abrirModal('${u.preview}')">
+        <img src="${u.preview}" style="cursor:pointer; max-width:150px; border:1px solid #ddd; border-radius:6px; margin-right:12px;" onclick="abrirModal('${u.preview}')">
+        <div>
+          <strong>Propuesta ${u.numero}</strong><br>
+          📍 Lat: ${u.lat.toFixed(5)}, Lng: ${u.lng.toFixed(5)}<br>
+          ⏰ ${u.fecha}
+        </div>
       `;
       cont.appendChild(div);
     });
@@ -277,14 +290,13 @@ document.getElementById("btnDownloadCollage").onclick = downloadCollage;
     document.getElementById("modalUbicacion").style.display = "none";
   }
 
-  // cerrar modal al hacer clic fuera
+  // cerrar modal al hacer clic en el fondo
   window.onclick = function(event) {
     const modal = document.getElementById("modalUbicacion");
     if (event.target === modal) {
       cerrarModal();
     }
   }
-  
 </script>
   
 </body>
