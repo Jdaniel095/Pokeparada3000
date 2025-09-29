@@ -263,41 +263,40 @@ function renderLocations(){
     div.style.borderRadius="6px";
     div.style.background="#f9f9f9";
 
- // Mini-mapa satelital interactivo (sin controles)
-const thumbDiv = document.createElement("div");
-thumbDiv.style.width = "150px";
-thumbDiv.style.height = "100px";
-thumbDiv.style.border = "1px solid #999";
-thumbDiv.style.borderRadius = "4px";
-thumbDiv.style.cursor = "pointer";
+    // Mini-mapa satelital Leaflet (Esri World Imagery)
+    const thumbDiv = document.createElement("div");
+    thumbDiv.style.width = "150px";
+    thumbDiv.style.height = "100px";
+    thumbDiv.style.border = "1px solid #999";
+    thumbDiv.style.borderRadius = "4px";
+    thumbDiv.style.cursor = "pointer";
+    div.appendChild(thumbDiv);
 
-div.appendChild(thumbDiv);
+    const thumbMap = L.map(thumbDiv, {
+      attributionControl: false,
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      tap: false
+    }).setView([loc.lat, loc.lng], 16);
 
-const thumbMap = L.map(thumbDiv, {
-  attributionControl: false,
-  zoomControl: false,
-  dragging: false,
-  scrollWheelZoom: false,
-  doubleClickZoom: false,
-  boxZoom: false,
-  keyboard: false,
-  tap: false
-}).setView([loc.lat, loc.lng], 16);
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19 }
+    ).addTo(thumbMap);
 
-L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom: 19 }
-).addTo(thumbMap);
+    L.marker([loc.lat, loc.lng]).addTo(thumbMap);
 
-L.marker([loc.lat, loc.lng]).addTo(thumbMap);
-
-thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
-
+    thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
 
     // Detalles
     const details = document.createElement("div");
     details.innerHTML = `<strong>Propuesta ${loc.order}</strong><br>
                          📍 ${loc.lat}, ${loc.lng}`;
+    div.appendChild(details);
 
     // Botones
     const controls = document.createElement("div");
@@ -335,13 +334,12 @@ thumbDiv.onclick = () => openMap(loc.lat, loc.lng);
     controls.appendChild(btnEdit);
     controls.appendChild(btnDelete);
 
-    div.appendChild(img);
-    div.appendChild(details);
     div.appendChild(controls);
 
     list.appendChild(div);
   });
 }
+
 
 /* === Mover arriba/abajo === */
 function moveLocation(id,dir){
