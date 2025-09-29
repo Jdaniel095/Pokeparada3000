@@ -86,6 +86,35 @@
   </div>
 </div>
 
+  <!-- 4. Editor de propuestas -->
+<section>
+  <h2>4) Editor de propuestas</h2>
+  <p>Pega aquí el texto que te proporcione el asistente para cada foto del collage y asócialo con su número de propuesta.</p>
+
+  <!-- Selector de propuesta -->
+  <div class="controls-row">
+    <label for="proposalNum"><strong>Propuesta #</strong></label>
+    <input type="number" id="proposalNum" min="1" style="width:80px">
+  </div>
+
+  <!-- Campos de texto -->
+  <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px">
+    <input type="text" id="titleInput" placeholder="Título sugerido" />
+    <textarea id="descInput" rows="3" placeholder="Descripción principal"></textarea>
+    <textarea id="wayfarerInput" rows="3" placeholder="Texto para revisores de Wayfarer"></textarea>
+    <input type="text" id="categoryInput" placeholder="Categoría sugerida" />
+  </div>
+
+  <!-- Botones -->
+  <div class="controls-row" style="margin-top:12px">
+    <button id="btnSaveProposal" class="primary">💾 Guardar propuesta</button>
+    <button id="btnClearForm" class="secondary">🧹 Limpiar</button>
+  </div>
+
+  <!-- Lista de propuestas guardadas -->
+  <div id="proposalList" style="margin-top:15px;display:flex;flex-direction:column;gap:12px"></div>
+</section>
+
 
   
 <script>
