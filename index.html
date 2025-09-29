@@ -422,43 +422,52 @@ document.getElementById("btnSaveLocation").onclick = saveLocation;
 
 let proposals = [];
 
-function saveProposal() {
-  const num = parseInt(document.getElementById("proposalNum").value);
-  const title = document.getElementById("titleInput").value.trim();
-  const desc = document.getElementById("descInput").value.trim();
-  const wayfarer = document.getElementById("wayfarerInput").value.trim();
-  const category = document.getElementById("categoryInput").value.trim();
+let proposals = [];
 
-  if (isNaN(num) || !title) {
-    alert("Debes indicar un número de propuesta y un título.");
+function processBulkInput() {
+  const text = document.getElementById("bulkInput").value.trim();
+  if (!text) {
+    alert("Debes pegar el bloque de propuestas.");
     return;
   }
 
-  // Ver si ya existe
-  const existing = proposals.find(p => p.num === num);
-  if (existing) {
-    existing.title = title;
-    existing.desc = desc;
-    existing.wayfarer = wayfarer;
-    existing.category = category;
-  } else {
-    proposals.push({ num, title, desc, wayfarer, category });
+  proposals = []; // reiniciar
+
+  // Dividimos por propuestas (#n)
+  const blocks = text.split(/#(\d+)/).filter(Boolean);
+
+  for (let i = 0; i < blocks.length; i += 2) {
+    const num = parseInt(blocks[i].trim());
+    const content = blocks[i + 1].trim();
+
+    // Extraer campos con regex
+    const titleMatch = content.match(/Título:\s*(.+)/i);
+    const descMatch = content.match(/Descripción:\s*([\s\S]*?)\n/i);
+    const wayfarerMatch = content.match(/Wayfarer:\s*([\s\S]*?)\n/i);
+    const categoryMatch = content.match(/Categoría:\s*(.+)/i);
+
+    proposals.push({
+      num,
+      title: titleMatch ? titleMatch[1].trim() : "",
+      desc: descMatch ? descMatch[1].trim() : "",
+      wayfarer: wayfarerMatch ? wayfarerMatch[1].trim() : "",
+      category: categoryMatch ? categoryMatch[1].trim() : ""
+    });
   }
 
   renderProposals();
-  clearForm();
 }
 
 function renderProposals() {
   const list = document.getElementById("proposalList");
   list.innerHTML = "";
 
-  proposals.sort((a,b)=>a.num-b.num).forEach(p=>{
+  proposals.sort((a, b) => a.num - b.num).forEach(p => {
     const div = document.createElement("div");
-    div.style.border="1px solid #ccc";
-    div.style.padding="8px";
-    div.style.borderRadius="6px";
-    div.style.background="#f9f9f9";
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "8px";
+    div.style.borderRadius = "6px";
+    div.style.background = "#f9f9f9";
 
     div.innerHTML = `
       <strong>Propuesta #${p.num}</strong><br>
@@ -472,16 +481,7 @@ function renderProposals() {
   });
 }
 
-function clearForm() {
-  document.getElementById("proposalNum").value = "";
-  document.getElementById("titleInput").value = "";
-  document.getElementById("descInput").value = "";
-  document.getElementById("wayfarerInput").value = "";
-  document.getElementById("categoryInput").value = "";
-}
-
-document.getElementById("btnSaveProposal").onclick = saveProposal;
-document.getElementById("btnClearForm").onclick = clearForm;
+document.getElementById("btnProcess").onclick = processBulkInput;
 
 
   
