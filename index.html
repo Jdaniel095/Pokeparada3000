@@ -431,6 +431,73 @@ document.getElementById("modalMap").onclick=(e)=>{
 
 /* Botón guardar */
 document.getElementById("btnSaveLocation").onclick = saveLocation;
+
+
+let proposals = [];
+
+function saveProposal() {
+  const num = parseInt(document.getElementById("proposalNum").value);
+  const title = document.getElementById("titleInput").value.trim();
+  const desc = document.getElementById("descInput").value.trim();
+  const wayfarer = document.getElementById("wayfarerInput").value.trim();
+  const category = document.getElementById("categoryInput").value.trim();
+
+  if (isNaN(num) || !title) {
+    alert("Debes indicar un número de propuesta y un título.");
+    return;
+  }
+
+  // Ver si ya existe
+  const existing = proposals.find(p => p.num === num);
+  if (existing) {
+    existing.title = title;
+    existing.desc = desc;
+    existing.wayfarer = wayfarer;
+    existing.category = category;
+  } else {
+    proposals.push({ num, title, desc, wayfarer, category });
+  }
+
+  renderProposals();
+  clearForm();
+}
+
+function renderProposals() {
+  const list = document.getElementById("proposalList");
+  list.innerHTML = "";
+
+  proposals.sort((a,b)=>a.num-b.num).forEach(p=>{
+    const div = document.createElement("div");
+    div.style.border="1px solid #ccc";
+    div.style.padding="8px";
+    div.style.borderRadius="6px";
+    div.style.background="#f9f9f9";
+
+    div.innerHTML = `
+      <strong>Propuesta #${p.num}</strong><br>
+      <b>Título:</b> ${p.title}<br>
+      <b>Descripción:</b> ${p.desc}<br>
+      <b>Wayfarer:</b> ${p.wayfarer}<br>
+      <b>Categoría:</b> ${p.category}
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+function clearForm() {
+  document.getElementById("proposalNum").value = "";
+  document.getElementById("titleInput").value = "";
+  document.getElementById("descInput").value = "";
+  document.getElementById("wayfarerInput").value = "";
+  document.getElementById("categoryInput").value = "";
+}
+
+document.getElementById("btnSaveProposal").onclick = saveProposal;
+document.getElementById("btnClearForm").onclick = clearForm;
+
+
+  
 </script>
   
 </body>
