@@ -131,14 +131,14 @@ function generateCollage(){
   const ctx = canvas.getContext("2d");
 
   const selFiles = files.filter(f => selected.has(f.id));
-  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
+  if(selFiles.length === 0){ 
+    alert("Selecciona fotos primero"); 
+    return; 
+  }
 
-  const cols = 3; // fijo en 3 columnas
-  const w = 300; // ancho por foto
-  const h = 220; // alto por foto
-  const cols = 3; // columnas
-  const w = 300;
-  const h = 220;
+  const cols = 3;  // columnas
+  const w = 300;   // ancho por foto
+  const h = 220;   // alto por foto
   const rows = Math.ceil(selFiles.length/cols);
 
   canvas.width = cols*w;
@@ -168,6 +168,15 @@ function generateCollage(){
       ? f.thumbnailLink.replace(/=s\d+$/, "=s400") 
       : `https://drive.google.com/uc?export=view&id=${f.id}`;
   });
+
+  // mostrar preview con retraso
+  setTimeout(()=>{
+    const dataUrl = canvas.toDataURL("image/png");
+    const preview = document.getElementById("collagePreview");
+    preview.src = dataUrl;
+    preview.style.display="block";
+  },800);
+}
 
   // mostrar preview
   // mostrar preview con retraso
