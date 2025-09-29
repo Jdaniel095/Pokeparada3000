@@ -5,56 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Gestión de Propuestas</title>
 
-<!-- Leaflet (mapas) -->
+<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f8f9fb;
-    margin: 0;
-    padding: 0;
-  }
-  .container {
-    max-width: 1000px;
-    margin: auto;
-    padding: 20px;
-    text-align: center;
-  }
-  h1 {
-    color: #0b84ff;
-  }
-  h2 {
-    margin-top: 25px;
-    color: #333;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 5px;
-  }
-  button {
-    background: #1976d2;
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin: 4px;
-    font-size: 14px;
-  }
-  button:hover { background: #125aa0; }
-  .file-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px;
-    border-bottom: 1px solid #eee;
-    background: #fff;
-    border-radius: 6px;
-    margin-bottom: 6px;
-  }
-  .thumb { width: 90px; height: 70px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
-  #filesList { margin-top: 12px; text-align: left; }
-  #collagePreview { margin-top: 10px; max-width: 250px; cursor: pointer; border: 2px solid #ddd; border-radius: 8px; }
+  body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+  h2 { margin-top: 25px; }
+  button { margin: 5px; padding: 6px 12px; cursor: pointer; }
+  .file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .thumb { width: 80px; height: 60px; object-fit: cover; border: 1px solid #ccc; }
+  #filesList { margin-top: 10px; }
+  #collagePreview { margin-top: 10px; max-width: 200px; cursor: pointer; border: 1px solid #ccc; }
   #modalCollage {
     display: none; position: fixed; top:0; left:0; width:100%; height:100%;
     background: rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;
@@ -63,27 +25,22 @@
 </style>
 </head>
 <body>
-<div class="container">
   <h1>📸 Gestión de Propuestas</h1>
 
   <!-- ========================= -->
   <!-- 1) Conectar y listar Drive -->
   <!-- ========================= -->
   <h2>1) Listar fotos de la carpeta (Drive)</h2>
-  <div>
-    <button onclick="listarDrive()">🔄 Listar fotos</button>
-    <button onclick="seleccionarTodo()">✅ Seleccionar todo</button>
-  </div>
+  <button onclick="listarDrive()">🔄 Listar fotos</button>
+  <button onclick="seleccionarTodo()">✅ Seleccionar todo</button>
   <div id="filesList"></div>
 
   <!-- ========================= -->
   <!-- 2) Generar Collage -->
   <!-- ========================= -->
   <h2>2) Generar collage numerado</h2>
-  <div>
-    <button onclick="generarCollage()">🎨 Generar collage</button>
-    <button onclick="descargarCollage()">💾 Descargar collage</button>
-  </div>
+  <button onclick="generarCollage()">🎨 Generar collage</button>
+  <button onclick="descargarCollage()">💾 Descargar collage</button>
   <canvas id="collageCanvas" style="display:none;"></canvas>
   <img id="collagePreview" onclick="abrirCollageModal()" />
 
@@ -101,14 +58,13 @@
     <input type="number" id="fotoNumero" min="1" placeholder="Ej: 5">
     <button onclick="activarUbicacion()">📍 Usar ubicación actual</button>
   </div>
-  <div id="ubicacionesList" style="display:flex; flex-direction:column; gap:10px; max-width:800px; margin:auto;"></div>
+  <div id="ubicacionesList" style="display:flex; flex-direction:column; gap:10px; max-width:800px; margin-top:10px;"></div>
 
   <!-- Modal mapa -->
   <div id="modalUbicacion" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:1000;">
     <span onclick="cerrarModal()" style="position:absolute; top:15px; right:25px; font-size:30px; color:white; cursor:pointer;">&times;</span>
     <div id="modalMap" style="width:90%; height:80%; border:2px solid #fff; border-radius:8px;"></div>
   </div>
-</div>
 
 <script>
 /* ====== CONFIG ====== */
@@ -234,11 +190,6 @@ function mostrarUbicaciones() {
       <strong>Propuesta ${u.numero}</strong><br>
       📍 Lat: ${u.lat.toFixed(5)}, Lng: ${u.lng.toFixed(5)}<br>
       ⏰ ${u.fecha}
-      <br>
-      <button onclick="editarNumero(${idx})">✏️ Editar número</button>
-      <button onclick="moverArriba(${idx})">⬆️</button>
-      <button onclick="moverAbajo(${idx})">⬇️</button>
-      <button onclick="eliminarUbicacion(${idx})">🗑️</button>
     `;
 
     card.appendChild(mapDiv); card.appendChild(infoDiv); cont.appendChild(card);
@@ -252,14 +203,6 @@ function mostrarUbicaciones() {
     mapDiv.onclick = () => abrirModal(u.lat, u.lng);
   });
 }
-
-function editarNumero(idx) {
-  const nuevo = prompt("Nuevo número de foto:", ubicaciones[idx].numero);
-  if (nuevo) { ubicaciones[idx].numero = parseInt(nuevo); mostrarUbicaciones(); }
-}
-function eliminarUbicacion(idx) { if (confirm("¿Eliminar esta ubicación?")) { ubicaciones.splice(idx, 1); mostrarUbicaciones(); } }
-function moverArriba(idx) { if (idx > 0) { [ubicaciones[idx-1], ubicaciones[idx]] = [ubicaciones[idx], ubicaciones[idx-1]]; mostrarUbicaciones(); } }
-function moverAbajo(idx) { if (idx < ubicaciones.length - 1) { [ubicaciones[idx+1], ubicaciones[idx]] = [ubicaciones[idx], ubicaciones[idx+1]]; mostrarUbicaciones(); } }
 
 function abrirModal(lat, lng) {
   document.getElementById("modalUbicacion").style.display = "flex";
