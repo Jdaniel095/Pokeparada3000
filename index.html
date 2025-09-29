@@ -44,18 +44,28 @@
     <div id="filesList" class="files-wrap"></div>
   </section>
 
-  <!-- 2. Seleccionar y generar collage -->
+<!-- 2. Seleccionar y generar collage -->
 <section>
   <h2>2) Selecciona fotos y genera collage numerado</h2>
   <div class="controls-row">
     <button id="btnGenerateCollage" class="primary">🎨 Generar collage</button>
     <button id="btnDownloadCollage">⬇️ Descargar collage</button>
   </div>
+
+  <!-- El canvas está oculto -->
+  <canvas id="collageCanvas" style="display:none"></canvas>
+
+  <!-- Preview reducido -->
   <div id="collageArea" style="margin-top:12px;text-align:center">
-    <canvas id="collageCanvas"></canvas>
-    <img id="collagePreview" style="margin-top:12px;max-width:90%;border:1px solid #ccc;border-radius:6px;display:none"/>
+    <img id="collagePreview" style="max-width:250px;cursor:pointer;display:none;border:1px solid #ccc;border-radius:6px"/>
   </div>
 </section>
+
+<!-- Modal para agrandar la imagen -->
+<div id="modalCollage" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+ background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999">
+  <img id="modalImg" style="max-width:90%;max-height:90%;border:3px solid white;border-radius:8px"/>
+</div>
   
 <script>
 /* ===== CONFIG ===== */
@@ -123,9 +133,9 @@ function generateCollage(){
   const selFiles = files.filter(f => selected.has(f.id));
   if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
 
-  const cols = 3; // fijo en 3 columnas
-  const w = 300; // ancho por foto
-  const h = 220; // alto por foto
+  const cols = 3; // columnas
+  const w = 300;
+  const h = 220;
   const rows = Math.ceil(selFiles.length/cols);
 
   canvas.width = cols*w;
@@ -156,11 +166,12 @@ function generateCollage(){
       : `https://drive.google.com/uc?export=view&id=${f.id}`;
   });
 
-  // mostrar preview
+  // mostrar preview con retraso
   setTimeout(()=>{
     const dataUrl = canvas.toDataURL("image/png");
-    document.getElementById("collagePreview").src = dataUrl;
-    document.getElementById("collagePreview").style.display="block";
+    const preview = document.getElementById("collagePreview");
+    preview.src = dataUrl;
+    preview.style.display="block";
   },800);
 }
 
@@ -171,6 +182,17 @@ function downloadCollage(){
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
+
+// Evento para agrandar en modal
+document.getElementById("collagePreview").onclick = ()=>{
+  const modal = document.getElementById("modalCollage");
+  const modalImg = document.getElementById("modalImg");
+  modal.style.display="flex";
+  modalImg.src = document.getElementById("collagePreview").src;
+};
+document.getElementById("modalCollage").onclick = ()=>{
+  document.getElementById("modalCollage").style.display="none";
+};
 
 document.getElementById("btnGenerateCollage").onclick = generateCollage;
 document.getElementById("btnDownloadCollage").onclick = downloadCollage;
