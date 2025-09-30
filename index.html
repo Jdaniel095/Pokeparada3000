@@ -1,198 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Propuestas Wayfarer</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-    section { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    h2 { margin-top: 0; }
-    textarea { width: 100%; min-height: 180px; }
-    button { margin-top: 10px; padding: 8px 14px; border: none; background: #1976d2; color: #fff; border-radius: 4px; cursor: pointer; }
-    button:hover { background: #0d47a1; }
-    #collagePreview { margin-top: 10px; max-width: 100%; display: none; border: 2px solid #444; border-radius: 6px; }
-    .proposalCard { border:1px solid #ccc; padding:10px; margin-top:10px; border-radius:6px; background:#fafafa; }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wayfarer Helper - Collage</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Tu CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+
 </head>
 <body>
+  <header>📸 Wayfarer Helper</header>
 
-  <!-- 3. Guardar ubicaciones -->
-  <section>
-    <h2>3) Guardar ubicaciones (desde tu móvil)</h2>
-    <button id="btnSaveLocation">📍 Guardar Ubicación</button>
-    <div id="locationsList" style="margin-top:15px;display:flex;flex-direction:column;gap:12px"></div>
-  </section>
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="openTab('proponer')">📝 Proponer</div>
+    <div class="tab" onclick="openTab('historial')">📂 Historial</div>
+  </div>
 
-  <!-- 4. Propuestas (Texto generado) -->
-  <section>
-    <h2>4) Propuestas Wayfarer</h2>
-    <textarea id="proposalsText" placeholder="Pega aquí el bloque de propuestas generado..."></textarea>
-    <br>
-    <button onclick="processProposals()">Procesar propuestas</button>
-    <div id="proposalsPreview"></div>
-  </section>
+  <!-- Contenedores vacíos que se llenan dinámicamente -->
+  <div id="proponer" class="tab-content active"></div>
+  <div id="historial" class="tab-content"></div>
 
-  <!-- Collage -->
-  <section>
-    <h2>Collage</h2>
-    <canvas id="collageCanvas" style="display:none;"></canvas>
-    <button onclick="generateCollage()">Generar Collage</button>
-    <img id="collagePreview" alt="Collage generado">
-  </section>
-
-<script>
-/* ================= SECCION 3 ================= */
-let locations = [];
-let counter = 1;
-let currentMap = null;
-
-function saveLocation(){
-  if(!navigator.geolocation){
-    alert("Geolocalización no soportada.");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const lat = pos.coords.latitude.toFixed(6);
-    const lng = pos.coords.longitude.toFixed(6);
-
-    const location = { id: Date.now(), order: counter, lat, lng };
-    locations.push(location);
-    counter++;
-    renderLocations();
-  }, err=>{
-    alert("Error obteniendo ubicación: " + err.message);
-  });
-}
-
-function renderLocations(){
-  const list = document.getElementById("locationsList");
-  list.innerHTML = "";
-  locations.sort((a,b)=>a.order-b.order).forEach(loc=>{
-    const div = document.createElement("div");
-    div.className="proposalCard";
-
-    const img = document.createElement("img");
-    img.src = `https://staticmap.openstreetmap.de/staticmap.php?center=${loc.lat},${loc.lng}&zoom=16&size=150x100&maptype=satellite&markers=${loc.lat},${loc.lng},red-pushpin`;
-    img.style.cursor="pointer";
-    img.style.border="1px solid #999";
-    img.style.borderRadius="4px";
-    img.onclick=()=>openMap(loc.lat,loc.lng);
-
-    const details = document.createElement("div");
-    details.innerHTML = `<strong>Propuesta ${loc.order}</strong><br>📍 ${loc.lat}, ${loc.lng}`;
-
-    div.appendChild(img);
-    div.appendChild(details);
-    list.appendChild(div);
-  });
-}
-
-function openMap(lat,lng){
-  alert(`Mapa ampliado de ${lat}, ${lng} (modal omitido en esta demo)`);
-}
-
-document.getElementById("btnSaveLocation").onclick = saveLocation;
-
-/* ================= SECCION 4 ================= */
-let proposals = [];
-
-function processProposals(){
-  const text = document.getElementById("proposalsText").value.trim();
-  if(!text){ alert("Pega el bloque de propuestas primero."); return; }
-
-  const blocks = text.split(/#\d+/).filter(b=>b.trim()!=="");
-
-  proposals = blocks.map((content,idx)=>{
-    const titleMatch = content.match(/Título:\s*(.+)/i);
-    const descMatch = content.match(/Descripción:\s*([\s\S]*?)(?=Wayfarer:|Categoría:|$)/i);
-    const wayfarerMatch = content.match(/Wayfarer:\s*([\s\S]*?)(?=Categoría:|$)/i);
-    const categoryMatch = content.match(/Categoría:\s*(.+)/i);
-
-    return {
-      order: idx+1,
-      title: titleMatch ? titleMatch[1].trim() : "",
-      description: descMatch ? descMatch[1].trim() : "",
-      wayfarer: wayfarerMatch ? wayfarerMatch[1].trim() : "",
-      category: categoryMatch ? categoryMatch[1].trim() : ""
-    };
-  });
-
-  renderProposals();
-}
-
-function renderProposals(){
-  const preview = document.getElementById("proposalsPreview");
-  preview.innerHTML = "";
-  proposals.forEach(p=>{
-    const card = document.createElement("div");
-    card.className="proposalCard";
-    card.innerHTML = `
-      <strong>#${p.order} - ${p.title}</strong><br>
-      <em>${p.description}</em><br>
-      <b>Wayfarer:</b> ${p.wayfarer}<br>
-      <b>Categoría:</b> ${p.category}
-    `;
-    preview.appendChild(card);
-  });
-}
-
-/* ================= COLLAGE ================= */
-let files = [
-  {id:"1", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+1"},
-  {id:"2", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+2"},
-  {id:"3", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+3"},
-  {id:"4", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+4"},
-  {id:"5", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+5"},
-  {id:"6", thumbnailLink:"https://via.placeholder.com/300x220?text=Foto+6"}
-];
-let selected = new Set(files.map(f=>f.id));
-
-function generateCollage(){
-  const canvas = document.getElementById("collageCanvas");
-  const ctx = canvas.getContext("2d");
-
-  const selFiles = files.filter(f => selected.has(f.id));
-  if(selFiles.length === 0){ alert("Selecciona fotos primero"); return; }
-
-  const cols = 3;
-  const w = 300;
-  const h = 220;
-  const rows = Math.ceil(selFiles.length/cols);
-
-  canvas.width = cols*w;
-  canvas.height = rows*h;
-  ctx.fillStyle="#fff";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  let loaded = 0;
-  selFiles.forEach((f,idx)=>{
-    const img = new Image();
-    img.crossOrigin="anonymous";
-    img.onload=()=>{
-      const row = Math.floor(idx/cols);
-      const col = idx%cols;
-      const x = col*w;
-      const y = row*h;
-      ctx.drawImage(img,x,y,w,h);
-
-      ctx.fillStyle="rgba(0,0,0,0.6)";
-      ctx.fillRect(x,y,40,28);
-      ctx.fillStyle="#fff";
-      ctx.font="20px Arial";
-      ctx.fillText(`#${idx+1}`,x+8,y+20);
-
-      loaded++;
-      if(loaded === selFiles.length){
-        const dataUrl = canvas.toDataURL("image/png");
-        const preview = document.getElementById("collagePreview");
-        preview.src = dataUrl;
-        preview.style.display="block";
-      }
-    };
-    img.src = f.thumbnailLink;
-  });
-}
-</script>
+  <!-- Scripts -->
+  <script src="loader.js"></script>
+  <script src="historial.js"></script>
 </body>
 </html>
-
