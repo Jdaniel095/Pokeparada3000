@@ -1,13 +1,12 @@
 document.getElementById("btnConnect").onclick = listDriveFiles;
-  /* ===== CONFIG ===== */
-  const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
-  const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
-  const SHEET_URL = "https://script.google.com/macros/s/AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT/exec";
+/* ===== CONFIG ===== */
+const API_KEY = "AIzaSyAzq7mmTZTExpbetLRCkbopY5pDPBvOki4";
+const FOLDER_ID = "1SykigPCl4e003n6i2_PbopBrq22droo4";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycby0mJlQC7FMR18yS_kPLRuUDw3CbaWEFXuzQqGzuT6jkVdF-53TPvCeUW8UaBxRQWpT/exec";
 
-  let files = [];
-  let selected = new Set();
+let files = [];
+let selected = new Set();
 
-  // ... 🚀 aquí pegas TODO tu código tal como lo tienes ...
 /* === 1. Listar archivos de Drive === */
 async function listDriveFiles(){
   const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType,thumbnailLink,webContentLink)`;
@@ -24,7 +23,9 @@ function renderFiles(){
   files.forEach((f,i)=>{
     const isSel = selected.has(f.id);
     // aseguramos thumbnail
-const thumb = `https://drive.google.com/uc?export=view&id=${f.id}`;
+    const thumb = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s200") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
 
     const div = document.createElement("div");
     div.className = "file-card"+(isSel?" selected":"");
@@ -91,7 +92,9 @@ function generateCollage(){
       ctx.fillStyle="#fff";
       ctx.fillText(`#${idx+1}`,x+8,y+20);
     };
-img.src = `https://drive.google.com/uc?export=view&id=${f.id}`;
+    img.src = f.thumbnailLink 
+      ? f.thumbnailLink.replace(/=s\d+$/, "=s400") 
+      : `https://drive.google.com/uc?export=view&id=${f.id}`;
   });
 
   // mostrar preview
@@ -463,9 +466,12 @@ function buildResults(){
     img.style.height = "200px";
     img.style.objectFit = "cover";
     img.style.borderRadius = "8px";
-  img.src = file
-  ? `https://drive.google.com/uc?export=view&id=${file.id}`
-  : "https://via.placeholder.com/200x200?text=Sin+Imagen";
+    img.src = file
+      ? (file.thumbnailLink
+          ? file.thumbnailLink.replace(/=s\d+$/, "=s400")
+          : `https://drive.google.com/uc?export=view&id=${file.id}`)
+      : "https://via.placeholder.com/200x200?text=Sin+Imagen";
+    imgDiv.appendChild(img);
 
     // === Columna 2: Texto + botones copiar ===
     const textDiv = document.createElement("div");
@@ -565,6 +571,10 @@ function buildResults(){
     container.appendChild(card);
   });
 }
+
+
+ 
+
 
 
 
