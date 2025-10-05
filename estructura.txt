@@ -1,0 +1,37 @@
+Estructura de la carpeta pokeparadas-web
+pokeparadas-web/
+│
+├── index.html             <-- Página principal con las pestañas
+├── css/
+│   └── main.css           <-- Estilos generales, responsive y amigables
+├── js/
+│   ├── main.js            <-- Script que controla el cambio de pestañas
+│   ├── tab1_generate.js   <-- Lógica de generar pokeparadas
+│   ├── tab2_manage.js     <-- Lógica de gestión de pokeparadas
+│   ├── tab3_history.js    <-- Lógica del historial de sesiones
+│   └── config.js          <-- Aquí puedes poner el CLIENT_ID y SPREADSHEET_ID
+├── assets/
+│   ├── favicon.png
+│   └── ...otras imágenes si quieres
+└── tabs/
+    ├── tab1_generate.html
+    ├── tab2_manage.html
+    └── tab3_history.html
+
+
+Cada .html dentro de tabs/ corresponde a una pestaña.
+
+Cada .js dentro de js/ controla la funcionalidad de su pestaña.
+
+config.js contendrá tu CLIENT_ID de OAuth2 y SPREADSHEET_ID de Google Sheets.
+
+2️⃣ Estructura inicial de la hoja de cálculo PokeparadasDB
+
+Hicimos varias pestañas, para empezar:
+
+SesionesTemporales
+NombreSesion	NumeroPropuesta	HoraGuardado	Titulo	Descripcion	Wayfarer	Categoria	Lat	Lng	Direccion	Estado	Observaciones
+HistorialDeSesiones
+NombreSesion	HoraGuardado	NumeroPropuesta	Titulo	Descripcion	Wayfarer	Categoria	Direccion	Lat	Lng	Estado	FotoPrincipalID	FotoAccesoID
+PokeparadasExistentes
+IDSesion	Titulo	Categoria	Lat	Lng	Direccion	Estado	HistorialCoordenadas	FotoPrincipalID

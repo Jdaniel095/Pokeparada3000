@@ -1,0 +1,337 @@
+/* ================================
+   🎨 ESTILO BASE
+=================================== */
+
+body {
+  background-color: #2c3e50;
+  font-family: 'Open Sans', sans-serif;
+  margin: 0;
+}
+
+.section-card {
+  background-color: #0a1a2f;
+  border-radius: 8px;
+  box-shadow: 0px 4px 8px rgba(0,0,0,0.3);
+  margin: 20px auto;
+  max-width: 800px;
+  overflow: hidden;
+}
+
+.section-header {
+  background-color: #3498db;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.section-content {
+  padding: 15px;
+  color: #ecf0f1;
+  overflow: visible !important;
+}
+
+/* ================================
+   🎛️ BOTONES
+=================================== */
+button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+button.primary { background: #074700; color: #fff; }
+button.primary:hover { background: #031A00; }
+
+button.secondary { background: #eee; }
+button.secondary:hover { background: #ddd; }
+
+button.poke { background: #3498db; color: #fff; }
+button.poke:hover { background: #1d6fa5; }
+
+button.acceso { background: orange; color: #fff; }
+button.acceso:hover { background: #e67e22; }
+
+/* ================================
+   🧭 NAVEGACIÓN SUPERIOR
+=================================== */
+#wrapper {
+  width: 600px;
+  margin: 40px auto 0;
+}
+
+#wrapper ul {
+  margin: 0;
+  padding: 0;
+  height: 60px;
+  list-style: none;
+  display: flex;
+  background-color: #34495e;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#wrapper ul li {
+  flex: 1;
+  text-align: center;
+  border-right: 1px solid #2c3e50;
+}
+
+#wrapper ul li:last-child {
+  border-right: none;
+}
+
+#wrapper ul li a {
+  display: block;
+  text-decoration: none;
+  color: #ecf0f1;
+  line-height: 60px;
+  font-weight: bold;
+}
+
+#wrapper ul li a.active,
+#wrapper ul li a:hover {
+  background-color: #1abc9c;
+  color: #fff;
+}
+
+#tab-content {
+  margin-top: 20px;
+  width: 100%;
+  min-height: 400px;
+}
+
+/* ================================
+   💠 TARJETAS BASE (para otros módulos)
+=================================== */
+.card {
+  display: grid;
+  grid-template-columns: 300px;
+  grid-template-rows: 210px 60px 150px 80px;
+  grid-template-areas:
+    "image"
+    "text"
+    "map"
+    "stats";
+  border-radius: 18px;
+  background: white;
+  box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+  text-align: center;
+  transition: 0.5s ease;
+  cursor: pointer;
+  margin: 20px;
+}
+
+.card:hover {
+  transform: scale(1.00);
+  box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+}
+
+.card-map {
+  grid-area: map;
+  padding: 0;
+}
+
+.card-map img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.card-image {
+  grid-area: image;
+  background: url('../assets/map_placeholder.jpg') center/cover no-repeat;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  position: relative;
+}
+
+.card-text {
+  grid-area: text;
+  padding: 0;
+  margin: 0;
+  background: #0b84ff;
+  color: white;
+  border-radius: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-text.gym {
+  background: #ff9800;
+}
+
+.card-text h2 {
+  margin: 0;
+  font-size: 25px;
+}
+
+.card-text p {
+  display: none;
+}
+
+.card-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  background: #0b84ff;
+}
+
+.card-stats.gym { background: #ff9800; }
+
+.card-stats .stat {
+  padding:10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: white;
+}
+
+.card-stats .border {
+  border-left: 1px solid rgba(255,255,255,0.4);
+  border-right: 1px solid rgba(255,255,255,0.4);
+}
+
+.card-stats .value { font-size:22px; font-weight: 500; }
+.card-stats .type { font-size:11px; font-weight: 300; text-transform: uppercase; }
+
+/* ================================
+   🖼️ GALERÍA DE IMÁGENES DRIVE
+=================================== */
+#filesList {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+  margin-top: 15px;
+}
+
+/* Móvil o pantallas pequeñas */
+@media (max-width: 768px) {
+  #filesList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+#filesList .drive-thumb {
+  position: relative;
+  background: #0a1a2f;
+  border: 2px solid #007b80;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1.3 / 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#filesList .drive-thumb:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+/* Imagen dentro de la tarjeta */
+#filesList img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ================================
+   ✅ CHECKS EN IMÁGENES (Poké / Acceso)
+=================================== */
+#filesList .file-wrapper {
+  position: absolute;
+  top: 10px;
+  z-index: 10;
+}
+
+#filesList .file-wrapper.left {
+  left: 10px;
+}
+
+#filesList .file-wrapper.right {
+  right: 10px;
+}
+
+#filesList .file-toggle {
+  display: none;
+}
+
+#filesList .file-check {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #0b84ff;
+  background: #fff;
+  color: #0b84ff;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 3px rgba(0,0,0,0.4);
+}
+
+/* Azul activo */
+#filesList .file-toggle:checked + .file-check {
+  background: #0b84ff;
+  color: #fff;
+}
+
+/* Naranja */
+#filesList .file-check.acceso {
+  border-color: orange;
+  color: orange;
+}
+
+/* Naranja activo */
+#filesList .file-toggle:checked + .file-check.acceso {
+  background: orange;
+  color: white;
+}
+
+/* Número encima de la imagen */
+#filesList .thumb-num {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 2px 6px;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 6px;
+  user-select: none;
+}
