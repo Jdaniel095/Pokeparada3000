@@ -1,0 +1,184 @@
+<!-- tabs/tab1_generate/index.html -->
+<div class="sections-wrapper">
+
+    <!-- 💾 NOMBRE DE SESIÓN -->
+  <div class="section-card" style="border-left:5px solid #2ecc71;">
+    <div class="section-header">
+      <h2>🗂️ Sesión Temporal</h2>
+    
+    </div>
+
+    <div class="section-content">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <input type="text" id="inputNombreSesion" placeholder="Escribe un nombre para la sesión..." style="flex:1;min-width:200px;" />
+        <button id="btnGuardarSesion" class="primary">💾 Guardar Sesión Temporal</button>
+      </div>
+      <p style="margin-top:8px;color:#555;font-size:0.9em;">
+        * Recuerda guardar la sesión antes de agregar fotos o generar collage.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- 🖼️ SECCIÓN 1: SELECCIÓN DE FOTOS -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>1.- Selección de Fotos</h2>
+      <button class="toggle-btn">−</button>
+    </div>
+
+    <div class="section-content">
+      <!-- Controles -->
+      <div class="controls-row" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <button id="btnRefresh" class="secondary">Refrescar</button>
+        <button id="btnSelectAll" class="secondary">Seleccionar todo</button>
+        <button id="btnClearPoke" class="poke">Limpiar Poképaradas</button>
+        <button id="btnClearAcceso" class="acceso">Limpiar Accesos</button>
+        <button id="btnClearAll" class="secondary">Limpiar Todo</button>
+
+
+        <!-- Contador -->
+        <div id="filesCounter" style="margin-left:auto; font-weight:bold; display:flex; gap:12px;">
+          <span>Total: 0</span>
+          <span style="color:#3498db">Poképaradas: 0</span>
+          <span style="color:orange">Accesos: 0</span>
+        </div>
+      </div>
+
+      <!-- Contenedor de imágenes -->
+      <div id="filesList">
+      </div>
+
+      <!-- Botón guardar -->
+      <div style="margin-top:15px;text-align:right;">
+        <button id="btnGuardarFotos" class="primary">Guardar Fotos en BD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎨 SECCIÓN 2: COLLAGE -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2>2.- Generador de Collage</h2>
+      <button class="toggle-btn">−</button>
+    </div>
+    <div class="section-content">
+      <p>Genera un collage con las imágenes guardadas en <b>SesionesTemporales</b>.</p>
+
+      <div style="text-align:center;margin-top:10px;">
+        <button id="btnGenerarCollage" class="poke">🎨 Generar Collage</button>
+      </div>
+
+      <div id="collagePreview" style="margin-top:20px;text-align:center;"></div>
+    </div>
+  </div>
+
+
+ <!-- 📍 SECCIÓN 3: UBICACIONES -->
+<div class="section-card">
+  <div class="section-header">
+    <h2>3.- Guardar Ubicaciones</h2>
+    <button class="toggle-btn">−</button>
+  </div>
+  <div class="section-content">
+
+    <!-- Botón principal -->
+    <div style="margin-bottom:10px;">
+      <button id="btnGuardarCoordenada" class="poke">📍 Guardar Coordenada Actual</button>
+    </div>
+
+    <!-- Contenedor donde aparecerán las ubicaciones guardadas -->
+    <div id="ubicacionesList" style="display:flex;flex-direction:column;gap:15px;"></div>
+
+  </div>
+</div>
+
+
+<!-- 📋 SECCIÓN 4: PROPUESTAS -->
+<div class="section-card">
+  <div class="section-header">
+    <h2>4.- Pegar Propuestas</h2>
+    <button class="toggle-btn">−</button>
+  </div>
+  <div class="section-content">
+    <p>Pega aquí las propuestas (título y descripción). Se separarán automáticamente por líneas.</p>
+
+    <textarea id="inputPropuestas" placeholder="Ejemplo:&#10;Poképarada 1 - Parque Central&#10;Poképarada 2 - Fuente principal..." 
+      style="width:100%;min-height:120px;border-radius:8px;padding:8px;"></textarea>
+
+    <div style="margin-top:10px;text-align:right;">
+      <button id="btnProcesarPropuestas" class="secondary">Procesar</button>
+      <button id="btnGuardarPropuestas" class="primary">💾 Guardar en BD</button>
+    </div>
+
+    <div id="listaPropuestas" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+</div>
+
+
+<!-- ✅ SECCIÓN 5: RESULTADOS -->
+<div class="section-card">
+  <div class="section-header">
+    <h2>5.- Generar Propuestas Guardadas</h2>
+    <button class="toggle-btn">−</button>
+  </div>
+
+  <div class="section-content">
+    <p>Genera un resumen con todas las fotos, ubicaciones y propuestas guardadas en esta sesión temporal.</p>
+
+    <div style="margin-top:10px;text-align:right;">
+      <button id="btnGenerarPropuestas" class="primary">⚙️ Generar Propuestas</button>
+    </div>
+
+    <!-- Contenedor donde se mostrará el resumen -->
+    <div id="propuestasList" style="margin-top:20px;display:flex;flex-direction:column;gap:15px;"></div>
+  </div>
+</div>
+
+
+    
+
+    <!-- Modal para mapa -->
+    <div id="modalMapaSat"
+         style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+         background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999;">
+      <div style="position:relative;width:90%;height:90%;">
+        <iframe id="iframeMapaSat" style="width:100%;height:100%;border:none;border-radius:8px;"></iframe>
+        <button onclick="document.getElementById('modalMapaSat').style.display='none';"
+                style="position:absolute;top:10px;right:10px;padding:8px 12px;background:white;
+                border:none;border-radius:4px;cursor:pointer;">❌ Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para ver mapa interactivo -->
+<div id="modalMap" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+ background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:9999">
+  <div style="position:relative;width:90%;height:90%">
+    <div id="leafletMap" style="width:100%;height:100%;border:3px solid white;border-radius:8px"></div>
+    <button onclick="closeMap()" style="position:absolute;top:10px;right:10px;padding:6px 10px;
+     background:#fff;border:none;border-radius:4px;cursor:pointer">❌ Cerrar</button>
+  </div>
+</div>
+
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+ integrity="sha256-oR0+v6h43v3zJv9iphtjaOqQ5c5h7L4qU4v3r7uHtkE=" crossorigin=""/>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+ integrity="sha256-oR0+v6h43v3zJv9iphtjaOqQ5c5h7L4qU4v3r7uHtkE=" crossorigin=""></script>
+
+
+
+<!-- 🔗 Vincular JS específico de esta pestaña -->
+<script src="../js/tab1_generate.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.initTab1) window.initTab1();
+  });
+</script>
+
